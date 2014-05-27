@@ -1,7 +1,6 @@
 <html>
 <head>
-  <script src="vendor/kinetic-v5.1.0.min.js"></script>
-  <script src="lib/rodeo_crop.js"></script>
+  <script src="lib/rodeo_crop_canvas.js"></script>
 
   <style>
     body, html { height: 100%; margin: 0; padding: 0; }
@@ -14,13 +13,17 @@
 <body>
 
   <div id="container">
-    <img src="http://placekitten.com/980/768">
+    <!-- <img src="http://placekitten.com/980/768"> -->
   </div>
 
   <script>
-    img = document.querySelector("#container img");
-    cropper = new RodeoCrop(img, {
-
+    var container = document.getElementById("container");
+    var w = window.getComputedStyle(container).getPropertyValue("width")
+    var h = window.getComputedStyle(container).getPropertyValue("height")
+    cropper = new RodeoCrop("#container", {
+      width: parseInt(w, 10),
+      height: parseInt(h, 10),
+      imageSource: '/Costa%20Rican%20Frog.jpg'
     });
   </script>
 </body>
