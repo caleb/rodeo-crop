@@ -145,6 +145,14 @@ class CanvasImage extends Drawable
 
     @loadImage()
 
+  naturalBounds: () ->
+    {
+      x: 0
+      y: 0
+      w: @naturalWidth
+      h: @naturalHeight
+    }
+
   resizeToParent: () ->
     cw = @parent.frame().w
     ch = @parent.frame().h
@@ -168,6 +176,11 @@ class CanvasImage extends Drawable
       ctx.drawImage @img, 0, 0, @w, @h
 
     @drawChildren ctx
+
+  onCanvasSizeChange:  ->
+    super()
+    for child in @children
+      child.onCanvasSizeChange()
 
   loadImage: ->
     @img = document.createElement 'img'
@@ -210,6 +223,13 @@ class CropBox extends Drawable
     @rightScreen  = new Rectangle fillStyle: @screenStyle
     @bottomScreen = new Rectangle fillStyle: @screenStyle
 
+    @cropX = options.cropX || 0
+    @cropY = options.cropY || 0
+    @cropWidth = options.cropWidth || @handleSize * 4
+    @cropHeight = options.cropHeight || @handleSize * 4
+
+    @onCropFrameChanged = options.onCropFrameChanged || null
+
     @dragging = null
 
     @handles = {}
@@ -222,6 +242,53 @@ class CropBox extends Drawable
       h: Math.abs @h
     }
 
+  cropFrame: () ->
+    {
+      x: @cropX
+      y: @cropY
+      width: @cropWidth
+      height: @cropHeight
+    }
+
+  updateCropAreaFromFrame: () ->
+    frame = @frame()
+    naturalBounds = @image.naturalBounds()
+    imageBounds = @image.bounds()
+
+    if imageBounds.w && imageBounds.h
+      @cropX      = Math.round(naturalBounds.w * (frame.x / imageBounds.w))
+      @cropY      = Math.round(naturalBounds.h * (frame.y / imageBounds.h))
+      @cropWidth  = Math.round(naturalBounds.w * (frame.w / imageBounds.w))
+      @cropHeight = Math.round(naturalBounds.h * (frame.h / imageBounds.h))
+
+    @onCropFrameChanged? @cropFrame()
+
+  setFrameAndUpdateCropArea: (frame) ->
+    @x = frame.x
+    @y = frame.y
+    @w = frame.w
+    @h = frame.h
+
+    @updateCropAreaFromFrame()
+
+  updateFrameFromCropArea: () ->
+    naturalBounds = @image.naturalBounds()
+    imageBounds = @image.bounds()
+
+    if imageBounds.w && imageBounds.h
+      @x = Math.round(imageBounds.w * (@cropX / naturalBounds.w))
+      @y = Math.round(imageBounds.h * (@cropY / naturalBounds.h))
+      @w = Math.round(imageBounds.w * (@cropWidth / naturalBounds.w))
+      @h = Math.round(imageBounds.h * (@cropHeight / naturalBounds.h))
+
+  setCropAreaAndUpdateFrame: (cropArea) ->
+    @cropX = cropArea.x
+    @cropY = cropArea.y
+    @cropWidth = cropArea.width
+    @cropHeight = cropArea.height
+
+    @updateFrameFromCropArea()
+
   bounds: () ->
     {
       x: 0
@@ -229,6 +296,10 @@ class CropBox extends Drawable
       w: Math.abs @w
       h: Math.abs @h
     }
+
+  onCanvasSizeChange: () ->
+    # move/size the crop area based on the image size
+    @updateFrameFromCropArea()
 
   containsCanvasPoint: (point) ->
     local = @convertFromCanvas point
@@ -242,10 +313,10 @@ class CropBox extends Drawable
 
     return false
 
-  mouseOut: (point) ->
+  onMouseOut: (point) ->
     @canvas.style.cursor = 'default'
 
-  mouseMove: (point) ->
+  onMouseMove: (point) ->
     for direction, handle of @handles
       if handle.containsCanvasPoint point
         switch direction
@@ -269,11 +340,16 @@ class CropBox extends Drawable
 
     @canvas.style.cursor = 'move'
 
+  constrainPointInParent: (point) ->
+    {
+      x: Math.min Math.max(point.x, 0), @parent.frame().w
+      y: Math.min Math.max(point.y, 0), @parent.frame().h
+    }
 
-  mouseDown: (point) ->
-  mouseUp: (point) ->
+  onMouseDown: (point) ->
+  onMouseUp: (point) ->
     @dragging = null
-  dragStart: (point) ->
+  onDragStart: (point) ->
     for direction, handle of @handles
       if handle.containsCanvasPoint point
         localPoint = handle.convertFromCanvas point
@@ -291,19 +367,15 @@ class CropBox extends Drawable
       offsetX: localPoint.x
       offsetY: localPoint.y
 
-  constrainPointInParent: (point) ->
-    {
-      x: Math.min Math.max(point.x, 0), @parent.frame().w
-      y: Math.min Math.max(point.y, 0), @parent.frame().h
-    }
-
-  dragMove: (point) ->
+  onDragMove: (point) ->
     if @dragging?.object == @
       # move the whole crop area
       localPoint = @convertFromCanvas point
       @moveTo
         x: localPoint.x - @dragging.offsetX
         y: localPoint.y - @dragging.offsetY
+
+      @updateCropAreaFromFrame()
     else if @dragging?.resizeDirection
       parentPoint = @parent.convertFromCanvas point
 
@@ -357,7 +429,9 @@ class CropBox extends Drawable
           @x = @x
           @y = @y
 
-  dragEnd: (point) ->
+      @updateCropAreaFromFrame()
+
+  onDragEnd: (point) ->
     # reset our frame after a drag to fix negative widths/heights used during
     # the dragging process
     frame = @frame()
@@ -366,7 +440,7 @@ class CropBox extends Drawable
     @w = frame.w
     @h = frame.h
 
-  click: (point) ->
+  onClick: (point) ->
 
   moveTo: (point) ->
     pos = @convertToParent point
@@ -513,6 +587,7 @@ class Stage extends Drawable
     @frame()
 
   onCanvasSizeChange: () ->
+    super()
     for child in @children
       child.onCanvasSizeChange()
 
@@ -538,6 +613,7 @@ class window.RodeoCrop
       width: 100
       height: 100
       imageSource: null
+      onCropFrameChanged: null
     , options
 
     @valid = false
@@ -574,6 +650,8 @@ class window.RodeoCrop
         @image.resizeToParent()
         @image.centerOnParent()
 
+        @cropBox.updateFrameFromCropArea()
+
       onCanvasSizeChange: () =>
         @image.resizeToParent()
         @image.centerOnParent()
@@ -584,10 +662,13 @@ class window.RodeoCrop
     @cropBox = new CropBox
       canvas: @canvas
       image: @image
-      x: 10
-      y: 10
-      w: 150
-      h: 150
+      cropX: @options.cropX
+      cropY: @options.cropY
+      cropWidth: @options.cropWidth
+      cropHeight: @options.cropHeight
+
+      onCropFrameChanged: (cropFrame) =>
+        @options.onCropFrameChanged? cropFrame
 
     @image.addChild @cropBox
 
@@ -602,52 +683,55 @@ class window.RodeoCrop
         y: y
       }
 
-    @canvas.addEventListener 'mouseup', (e) =>
+    window.addEventListener 'mouseup', (e) =>
       pos = globalToCanvas e
 
       if @dragging
-        @dragging.dragEnd pos
-        @dragging.mouseUp pos
+        @dragging.onDragEnd pos
+        @dragging.onMouseUp pos
       else if @mouseDown
-        @mouseDown.mouseUp pos
-        @mouseDown.click pos
+        @mouseDown.onMouseUp pos
+        @mouseDown.onClick pos
       else
         pos = globalToCanvas e
-        @cropBox.mouseUp pos if @cropBox.containsCanvasPoint pos
+        @cropBox.onMouseUp pos if @cropBox.containsCanvasPoint pos
 
       @dragging = @mouseDown = null
 
-    @canvas.addEventListener 'mousedown', (e) =>
+    window.addEventListener 'mousedown', (e) =>
       pos = globalToCanvas e
 
       if @cropBox.containsCanvasPoint pos
         @mouseDown = @cropBox
-        @cropBox.mouseDown pos
+        @cropBox.onMouseDown pos
 
-    @canvas.addEventListener 'mousemove', (e) =>
+    window.addEventListener 'mousemove', (e) =>
       if @dragging || @mouseDown
         pos = globalToCanvas e
 
         if ! @dragging
           @dragging = @mouseDown
-          @dragging.dragStart pos
+          @dragging.onDragStart pos
 
-        @dragging.dragMove pos
+        @dragging.onDragMove pos
         @valid = false
       else
         pos = globalToCanvas e
         cropboxContainsPoint = @cropBox.containsCanvasPoint pos
 
         if cropboxContainsPoint && @mouseOver != @cropBox
-          @mouseOver?.mouseOut pos if @mouseOver
+          @mouseOver?.onMouseOut pos if @mouseOver
           @mouseOver = @cropBox
-          @cropBox.mouseIn pos
+          @cropBox.onMouseIn? pos
         else if cropboxContainsPoint && @mouseOver == @cropBox
-          @cropBox.mouseMove pos
+          @cropBox.onMouseMove? pos
         else if ! cropboxContainsPoint && @mouseOver == @cropBox
-          @mouseOver.mouseOut pos
+          @mouseOver.onMouseOut? pos
           @mouseOver = null
 
+  setCropFrame: (frame) ->
+    @cropBox.setCropAreaAndUpdateFrame frame
+    @valid = false
 
   updateCanvasSize: () ->
     w = window.getComputedStyle(@canvas.parentNode).getPropertyValue 'width'

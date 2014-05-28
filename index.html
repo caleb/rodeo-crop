@@ -1,5 +1,7 @@
+<!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <script src="lib/rodeo_crop_canvas.js"></script>
 
   <style>
@@ -12,6 +14,11 @@
 </head>
 <body>
 
+  <form>
+    <input type="text" name="x">, <input type="text" name="y"> — <input type="text" name="w">&times;<input type="text" name="h">
+    <button>update!</button>
+  </form>
+
   <div id="container">
     <!-- <img src="http://placekitten.com/980/768"> -->
   </div>
@@ -23,7 +30,35 @@
     cropper = new RodeoCrop("#container", {
       width: parseInt(w, 10),
       height: parseInt(h, 10),
-      imageSource: '/Costa%20Rican%20Frog.jpg'
+      imageSource: '/Costa%20Rican%20Frog.jpg',
+      onCropFrameChanged: function(frame) {
+        var x = document.querySelector('[name=x]');
+        var y = document.querySelector('[name=y]');
+        var w = document.querySelector('[name=w]');
+        var h = document.querySelector('[name=h]');
+
+        x.value = "" + frame.x;
+        y.value = "" + frame.y;
+        w.value = "" + frame.width;
+        h.value = "" + frame.height;
+      }
+    });
+
+    button = document.querySelector('button')
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+
+      var x = parseInt(document.querySelector('[name=x]').value, 10);
+      var y = parseInt(document.querySelector('[name=y]').value, 10);
+      var w = parseInt(document.querySelector('[name=w]').value, 10);
+      var h = parseInt(document.querySelector('[name=h]').value, 10);
+
+      cropper.setCropFrame({
+        x: x,
+        y: y,
+        width: w,
+        height: h
+      });
     });
   </script>
 </body>
