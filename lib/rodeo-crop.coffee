@@ -1,5 +1,5 @@
-`import _ from "rodeo-crop/funderscore"`
-`import drawing from "rodeo-crop/drawing"`
+`import _ from "funderscore"`
+`import drawing from "drawing"`
 
 RodeoCrop = {}
 
@@ -77,10 +77,12 @@ class CropBox extends drawing.Drawable
       @h = (imageBounds.h * (@cropHeight / naturalBounds.h))
 
   setCropAreaAndUpdateFrame: (cropArea) ->
-    @cropX = cropArea.x
-    @cropY = cropArea.y
-    @cropWidth = cropArea.width
-    @cropHeight = cropArea.height
+    naturalBounds = @image.naturalBounds()
+
+    @cropX      = Math.min(Math.max(cropArea.x, 0.0), naturalBounds.w)
+    @cropY      = Math.min(Math.max(cropArea.y, 0.0), naturalBounds.h)
+    @cropWidth  = Math.min(Math.max(cropArea.width, 0.0), naturalBounds.w - @cropX)
+    @cropHeight = Math.min(Math.max(cropArea.height, 0.0), naturalBounds.h - @cropY)
 
     @updateFrameFromCropArea()
 
@@ -250,10 +252,10 @@ class CropBox extends drawing.Drawable
 
   drawScreen: (ctx) ->
     frame = @frame()
-    frame.x = Math.round(frame.x)
-    frame.y = Math.round(frame.y)
-    frame.w = Math.round(frame.w)
-    frame.h = Math.round(frame.h)
+    frame.x = Math.round frame.x
+    frame.y = Math.round frame.y
+    frame.w = Math.round frame.w
+    frame.h = Math.round frame.h
 
     @topScreen.set
       parent: @parent
@@ -290,10 +292,10 @@ class CropBox extends drawing.Drawable
 
   drawHandles: (ctx) ->
     frame = @frame()
-    frame.x = Math.round(frame.x)
-    frame.y = Math.round(frame.y)
-    frame.w = Math.round(frame.w)
-    frame.h = Math.round(frame.h)
+    frame.x = Math.round frame.x
+    frame.y = Math.round frame.y
+    frame.w = Math.round frame.w
+    frame.h = Math.round frame.h
 
     newRect = (x, y) =>
       return new drawing.Rectangle
@@ -322,10 +324,10 @@ class CropBox extends drawing.Drawable
 
   drawCropLines: (ctx) ->
     frame = @frame()
-    frame.x = Math.round(frame.x)
-    frame.y = Math.round(frame.y)
-    frame.w = Math.round(frame.w)
-    frame.h = Math.round(frame.h)
+    frame.x = Math.round frame.x
+    frame.y = Math.round frame.y
+    frame.w = Math.round frame.w
+    frame.h = Math.round frame.h
 
     opacity = "0.5"
     lineDash = 8
@@ -540,6 +542,8 @@ class Cropper
   setCropFrame: (frame) ->
     @cropBox.setCropAreaAndUpdateFrame frame
     @valid = false
+
+    @cropBox.cropFrame()
 
   updateCanvasSize: () ->
     w = window.getComputedStyle(@canvas.parentNode).getPropertyValue 'width'

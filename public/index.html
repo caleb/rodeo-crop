@@ -48,17 +48,22 @@
     button.addEventListener('click', function(e) {
       e.preventDefault();
 
-      var x = parseInt(document.querySelector('[name=x]').value, 10);
-      var y = parseInt(document.querySelector('[name=y]').value, 10);
-      var w = parseInt(document.querySelector('[name=w]').value, 10);
-      var h = parseInt(document.querySelector('[name=h]').value, 10);
+      var x = document.querySelector('[name=x]');
+      var y = document.querySelector('[name=y]');
+      var w = document.querySelector('[name=w]');
+      var h = document.querySelector('[name=h]');
 
-      cropper.setCropFrame({
-        x: x,
-        y: y,
-        width: w,
-        height: h
+      var cropFrame = cropper.setCropFrame({
+        x: parseFloat(x.value, 10),
+        y: parseFloat(y.value, 10),
+        width: parseFloat(w.value, 10),
+        height: parseFloat(h.value, 10)
       });
+
+      x.value = cropFrame.x;
+      y.value = cropFrame.y;
+      w.value = cropFrame.width;
+      h.value = cropFrame.height;
     });
   </script>
 </body>

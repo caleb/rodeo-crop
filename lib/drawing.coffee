@@ -1,4 +1,4 @@
-`import _ from "rodeo-crop/funderscore"`
+`import _ from "funderscore"`
 
 drawing = {}
 
