@@ -32,7 +32,9 @@ var libJs = compileES6(libAndDependencies, {
     'rodeo-crop/bootstrap.js'
   ],
   wrapInEval: false,
-  outputFile: '/build/rodeo_crop.js'
+  outputFile: '/javascripts/rodeo_crop.js'
 })
 
-module.exports = new mergeTrees([libJs, publicDir], { overwrite: true })
+var uglifiedLibJs = uglifyJavaScript(libJs)
+
+module.exports = new mergeTrees([libJs, publicDir, uglifiedLibJs], { overwrite: true })
