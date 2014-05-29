@@ -2,6 +2,7 @@ var filterCoffeeScript = require('broccoli-coffee')
 var uglifyJavaScript = require('broccoli-uglify-js')
 var compileES6 = require('broccoli-es6-concatenator')
 var pickFiles = require('broccoli-static-compiler')
+var moveFile = require('broccoli-file-mover')
 var mergeTrees = require('broccoli-merge-trees')
 
 function preprocess(tree) {
@@ -32,9 +33,13 @@ var libJs = compileES6(libAndDependencies, {
     'rodeo-crop/bootstrap.js'
   ],
   wrapInEval: false,
-  outputFile: '/javascripts/rodeo_crop.js'
+  outputFile: '/javascripts/rodeo-crop.js'
 })
 
-var uglifiedLibJs = uglifyJavaScript(libJs)
+var uglifiedLibJs = moveFile(libJs, {
+  srcFile: '/javascripts/rodeo-crop.js',
+  destFile: '/javascripts/rodeo-crop.min.js'
+})
+uglifiedLibJs = uglifyJavaScript(uglifiedLibJs)
 
-module.exports = new mergeTrees([libJs, publicDir, uglifiedLibJs], { overwrite: true })
+module.exports = new mergeTrees([libJs, uglifiedLibJs, publicDir], { overwrite: true })
