@@ -51,10 +51,10 @@ class CropBox extends drawing.Drawable
     imageBounds = @image.bounds()
 
     if imageBounds.w && imageBounds.h
-      @cropX      = Math.round(naturalBounds.w * (frame.x / imageBounds.w))
-      @cropY      = Math.round(naturalBounds.h * (frame.y / imageBounds.h))
-      @cropWidth  = Math.round(naturalBounds.w * (frame.w / imageBounds.w))
-      @cropHeight = Math.round(naturalBounds.h * (frame.h / imageBounds.h))
+      @cropX      = (naturalBounds.w * (frame.x / imageBounds.w))
+      @cropY      = (naturalBounds.h * (frame.y / imageBounds.h))
+      @cropWidth  = (naturalBounds.w * (frame.w / imageBounds.w))
+      @cropHeight = (naturalBounds.h * (frame.h / imageBounds.h))
 
     @onCropFrameChanged? @cropFrame()
 
@@ -71,10 +71,10 @@ class CropBox extends drawing.Drawable
     imageBounds = @image.bounds()
 
     if imageBounds.w && imageBounds.h
-      @x = Math.round(imageBounds.w * (@cropX / naturalBounds.w))
-      @y = Math.round(imageBounds.h * (@cropY / naturalBounds.h))
-      @w = Math.round(imageBounds.w * (@cropWidth / naturalBounds.w))
-      @h = Math.round(imageBounds.h * (@cropHeight / naturalBounds.h))
+      @x = (imageBounds.w * (@cropX / naturalBounds.w))
+      @y = (imageBounds.h * (@cropY / naturalBounds.h))
+      @w = (imageBounds.w * (@cropWidth / naturalBounds.w))
+      @h = (imageBounds.h * (@cropHeight / naturalBounds.h))
 
   setCropAreaAndUpdateFrame: (cropArea) ->
     @cropX = cropArea.x
@@ -250,6 +250,10 @@ class CropBox extends drawing.Drawable
 
   drawScreen: (ctx) ->
     frame = @frame()
+    frame.x = Math.round(frame.x)
+    frame.y = Math.round(frame.y)
+    frame.w = Math.round(frame.w)
+    frame.h = Math.round(frame.h)
 
     @topScreen.set
       parent: @parent
@@ -286,6 +290,10 @@ class CropBox extends drawing.Drawable
 
   drawHandles: (ctx) ->
     frame = @frame()
+    frame.x = Math.round(frame.x)
+    frame.y = Math.round(frame.y)
+    frame.w = Math.round(frame.w)
+    frame.h = Math.round(frame.h)
 
     newRect = (x, y) =>
       return new drawing.Rectangle
@@ -314,6 +322,11 @@ class CropBox extends drawing.Drawable
 
   drawCropLines: (ctx) ->
     frame = @frame()
+    frame.x = Math.round(frame.x)
+    frame.y = Math.round(frame.y)
+    frame.w = Math.round(frame.w)
+    frame.h = Math.round(frame.h)
+
     opacity = "0.5"
     lineDash = 8
 

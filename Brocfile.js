@@ -1,9 +1,9 @@
 var filterCoffeeScript = require('broccoli-coffee')
-var uglifyJavaScript = require('broccoli-uglify-js')
-var compileES6 = require('broccoli-es6-concatenator')
-var pickFiles = require('broccoli-static-compiler')
-var moveFile = require('broccoli-file-mover')
-var mergeTrees = require('broccoli-merge-trees')
+var uglifyJavaScript   = require('broccoli-uglify-js')
+var compileES6         = require('broccoli-es6-concatenator')
+var pickFiles          = require('broccoli-static-compiler')
+var moveFile           = require('broccoli-file-mover')
+var mergeTrees         = require('broccoli-merge-trees')
 
 function preprocess(tree) {
   tree = filterCoffeeScript(tree, {
