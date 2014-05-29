@@ -17,7 +17,9 @@
 
   <form action="#">
     <input type="text" name="x">, <input type="text" name="y"> — <input type="text" name="w">&times;<input type="text" name="h">
-    <button>update!</button>
+    <button id="update-crop">update!</button>
+
+    <button id="change-image">change image</button>
   </form>
 
   <div id="container">
@@ -25,46 +27,86 @@
   </div>
 
   <script>
+    var images = [
+      '/Costa%20Rican%20Frog.jpg',
+      'MondoCabin.jpg'
+    ]
+    var index = 0
+    var crops = []
+
     var container = document.getElementById("container");
     var w = window.getComputedStyle(container).getPropertyValue("width")
     var h = window.getComputedStyle(container).getPropertyValue("height")
+
+    var xbox = document.querySelector('[name=x]');
+    var ybox = document.querySelector('[name=y]');
+    var wbox = document.querySelector('[name=w]');
+    var hbox = document.querySelector('[name=h]');
+
     cropper = new RodeoCrop.Cropper("#container", {
       width: parseInt(w, 10),
       height: parseInt(h, 10),
-      imageSource: '/Costa%20Rican%20Frog.jpg',
-      onCropFrameChanged: function(frame) {
-        var x = document.querySelector('[name=x]');
-        var y = document.querySelector('[name=y]');
-        var w = document.querySelector('[name=w]');
-        var h = document.querySelector('[name=h]');
-
-        x.value = "" + frame.x;
-        y.value = "" + frame.y;
-        w.value = "" + frame.width;
-        h.value = "" + frame.height;
-      }
+      imageSource: images[index]
     });
 
-    button = document.querySelector('button')
+    cropper.on('change', function(frame) {
+      xbox.value = frame.x;
+      ybox.value = frame.y;
+      wbox.value = frame.width;
+      hbox.value = frame.height;
+
+      if (! crops[index]) {
+        crops[index] = {};
+      }
+      crops[index] = frame;
+    });
+
+    var cropFrame = cropper.setCropFrame({
+      x: 222,
+      y: 222,
+      width: 321,
+      height: 923
+    });
+
+    xbox.value = cropFrame.x;
+    ybox.value = cropFrame.y;
+    wbox.value = cropFrame.width;
+    hbox.value = cropFrame.height;
+
+    button = document.querySelector('#change-image')
     button.addEventListener('click', function(e) {
       e.preventDefault();
 
-      var x = document.querySelector('[name=x]');
-      var y = document.querySelector('[name=y]');
-      var w = document.querySelector('[name=w]');
-      var h = document.querySelector('[name=h]');
+      index++;
+
+      if (index >= images.length) {
+        index = 0;
+      }
+
+      cropper.setImageSource(images[index]);
+      var cropFrame = cropper.setCropFrame(crops[index])
+
+      xbox.value = cropFrame.x;
+      ybox.value = cropFrame.y;
+      wbox.value = cropFrame.width;
+      hbox.value = cropFrame.height;
+    })
+
+    button = document.querySelector('#update-crop')
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
 
       var cropFrame = cropper.setCropFrame({
-        x: parseFloat(x.value, 10),
-        y: parseFloat(y.value, 10),
-        width: parseFloat(w.value, 10),
-        height: parseFloat(h.value, 10)
+        x: parseFloat(xbox.value, 10),
+        y: parseFloat(ybox.value, 10),
+        width: parseFloat(wbox.value, 10),
+        height: parseFloat(hbox.value, 10)
       });
 
-      x.value = cropFrame.x;
-      y.value = cropFrame.y;
-      w.value = cropFrame.width;
-      h.value = cropFrame.height;
+      xbox.value = cropFrame.x;
+      ybox.value = cropFrame.y;
+      wbox.value = cropFrame.width;
+      hbox.value = cropFrame.height;
     });
   </script>
 </body>

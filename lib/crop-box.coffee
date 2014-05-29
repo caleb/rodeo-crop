@@ -21,11 +21,13 @@ class CropBox extends drawing.Drawable
     @cropWidth = options.cropWidth || @handleSize * 4
     @cropHeight = options.cropHeight || @handleSize * 4
 
-    @onCropFrameChanged = options.onCropFrameChanged || null
-
     @dragging = null
 
     @handles = {}
+
+    @image.on 'load', () =>
+      # reposition the frame when the image is loaded
+      @setCropFrameAndUpdateFrame @cropFrame()
 
   frame: () ->
     {
@@ -43,18 +45,18 @@ class CropBox extends drawing.Drawable
       height: @cropHeight
     }
 
-  updateCropAreaFromFrame: () ->
+  updateCropFrameFromFrame: () ->
     frame = @frame()
     naturalBounds = @image.naturalBounds()
     imageBounds = @image.bounds()
 
-    if imageBounds.w && imageBounds.h
+    if @image.loaded
       @cropX      = (naturalBounds.w * (frame.x / imageBounds.w))
       @cropY      = (naturalBounds.h * (frame.y / imageBounds.h))
       @cropWidth  = (naturalBounds.w * (frame.w / imageBounds.w))
       @cropHeight = (naturalBounds.h * (frame.h / imageBounds.h))
 
-    @onCropFrameChanged? @cropFrame()
+    @trigger 'change:cropFrame', @cropFrame()
 
   setFrameAndUpdateCropArea: (frame) ->
     @x = frame.x
@@ -62,27 +64,40 @@ class CropBox extends drawing.Drawable
     @w = frame.w
     @h = frame.h
 
-    @updateCropAreaFromFrame()
+    @updateCropFrameFromFrame()
 
-  updateFrameFromCropArea: () ->
+  updateFrameFromCropFrame: () ->
     naturalBounds = @image.naturalBounds()
     imageBounds = @image.bounds()
 
-    if imageBounds.w && imageBounds.h
+    if @image.loaded
       @x = (imageBounds.w * (@cropX / naturalBounds.w))
       @y = (imageBounds.h * (@cropY / naturalBounds.h))
       @w = (imageBounds.w * (@cropWidth / naturalBounds.w))
       @h = (imageBounds.h * (@cropHeight / naturalBounds.h))
 
-  setCropAreaAndUpdateFrame: (cropArea) ->
+  setCropFrameAndUpdateFrame: (cropArea) ->
     naturalBounds = @image.naturalBounds()
 
-    @cropX      = Math.min(Math.max(cropArea.x, 0.0), naturalBounds.w)
-    @cropY      = Math.min(Math.max(cropArea.y, 0.0), naturalBounds.h)
-    @cropWidth  = Math.min(Math.max(cropArea.width, 0.0), naturalBounds.w - @cropX)
-    @cropHeight = Math.min(Math.max(cropArea.height, 0.0), naturalBounds.h - @cropY)
+    # if the image is loaded, constrain the crop frame to the natural
+    # image size
+    #
+    # Also update the drawn frame from the new crop frame
+    if @image.loaded
+      @cropX      = Math.min(Math.max(cropArea.x, 0), naturalBounds.w)
+      @cropY      = Math.min(Math.max(cropArea.y, 0), naturalBounds.h)
+      @cropWidth  = Math.min(Math.max(cropArea.width, 0), naturalBounds.w - @cropX)
+      @cropHeight = Math.min(Math.max(cropArea.height, 0), naturalBounds.h - @cropY)
 
-    @updateFrameFromCropArea()
+      @updateFrameFromCropFrame()
+    else
+      # our image isn't loaded, so just set the crop area, and
+      # assume that we will update the frame and constrain it when
+      # it is loaded
+      @cropX = cropArea.x
+      @cropY = cropArea.y
+      @cropWidth = cropArea.width
+      @cropHeight = cropArea.height
 
   bounds: () ->
     {
@@ -91,10 +106,6 @@ class CropBox extends drawing.Drawable
       w: Math.abs @w
       h: Math.abs @h
     }
-
-  onCanvasSizeChange: () ->
-    # move/size the crop area based on the image size
-    @updateFrameFromCropArea()
 
   containsCanvasPoint: (point) ->
     local = @convertFromCanvas point
@@ -170,7 +181,7 @@ class CropBox extends drawing.Drawable
         x: localPoint.x - @dragging.offsetX
         y: localPoint.y - @dragging.offsetY
 
-      @updateCropAreaFromFrame()
+      @updateCropFrameFromFrame()
     else if @dragging?.resizeDirection
       parentPoint = @parent.convertFromCanvas point
 
@@ -224,7 +235,7 @@ class CropBox extends drawing.Drawable
           @x = @x
           @y = @y
 
-      @updateCropAreaFromFrame()
+      @updateCropFrameFromFrame()
 
   onDragEnd: (point) ->
     # reset our frame after a drag to fix negative widths/heights used during
@@ -234,6 +245,9 @@ class CropBox extends drawing.Drawable
     @y = frame.y
     @w = frame.w
     @h = frame.h
+
+    # trigger our change event at the end of the change
+    @trigger 'change', @cropFrame()
 
   onClick: (point) ->
 

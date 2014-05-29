@@ -1,5 +1,6 @@
 `import _ from "funderscore"`
 `import drawing from "drawing"`
+`import Events from "events"`
 `import CropBox from "crop-box"`
 
 RodeoCrop = {}
@@ -19,18 +20,13 @@ class Stage extends drawing.Drawable
   bounds: ->
     @frame()
 
-  onCanvasSizeChange: () ->
-    super()
-    for child in @children
-      child.onCanvasSizeChange()
-
   draw: (ctx) ->
     @drawChildren ctx
 
   clear: (ctx) ->
     ctx.clearRect 0, 0, @canvas.width, @canvas.height
 
-class Cropper
+class Cropper extends Events
   constructor: (el, options) ->
     @el = if _.isString el
       document.querySelector el
@@ -78,16 +74,15 @@ class Cropper
     @image = new drawing.CanvasImage
       canvas: @canvas
       source: @imageSource
-      onLoad: () =>
-        @valid = false
-        @image.resizeToParent()
-        @image.centerOnParent()
 
-        @cropBox.updateFrameFromCropArea()
+    @image.on 'load', () =>
+      @valid = false
+      @image.resizeToParent()
+      @image.centerOnParent()
 
-      onCanvasSizeChange: () =>
-        @image.resizeToParent()
-        @image.centerOnParent()
+    @stage.on 'resize', () =>
+      @image.resizeToParent()
+      @image.centerOnParent()
 
     @stage.addChild @image
 
@@ -100,8 +95,11 @@ class Cropper
       cropWidth: @options.cropWidth
       cropHeight: @options.cropHeight
 
-      onCropFrameChanged: (cropFrame) =>
-        @options.onCropFrameChanged? cropFrame
+    @cropBox.on 'change', (cropFrame) =>
+      @trigger 'change', cropFrame
+
+    @image.on 'resize', () =>
+      @cropBox.updateFrameFromCropFrame()
 
     @image.addChild @cropBox
 
@@ -162,8 +160,12 @@ class Cropper
           @mouseOver.onMouseOut? pos
           @mouseOver = null
 
+  setImageSource: (source) ->
+    @image.setSource source
+    @valid = false
+
   setCropFrame: (frame) ->
-    @cropBox.setCropAreaAndUpdateFrame frame
+    @cropBox.setCropFrameAndUpdateFrame frame
     @valid = false
 
     @cropBox.cropFrame()
@@ -188,7 +190,7 @@ class Cropper
 
     unless @valid
       @stage.clear @ctx
-      @stage.onCanvasSizeChange() if canvasSizeChanged
+      @stage.trigger 'resize' if canvasSizeChanged
       @stage.draw @ctx
 
     @valid = true

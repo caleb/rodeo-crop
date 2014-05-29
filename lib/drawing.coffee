@@ -1,8 +1,9 @@
 `import _ from "funderscore"`
+`import Events from "events"`
 
 drawing = {}
 
-class Drawable
+class Drawable extends Events
   constructor: (options) ->
     @options = options
 
@@ -15,9 +16,6 @@ class Drawable
     @canvas = options.canvas
     @children = options.children || []
     @dragable = options.dragable || false
-
-  onCanvasSizeChange: () ->
-    @options.onCanvasSizeChange.call @ if _.isFunction @options.onCanvasSizeChange
 
   set: (options) ->
     for own key, value of options
@@ -130,8 +128,20 @@ class CanvasImage extends Drawable
     @source = options.source
     @naturalWidth = options.naturalWidth
     @naturalHeight = options.naturalHeight
-    @onLoad = options.onLoad
+    @loaded = false
 
+    @loadImage()
+
+  clearImage: () ->
+    @loaded = false
+    @w = null
+    @h = null
+    @naturalWidth = null
+    @naturalHeight = null
+
+  setSource: (source) ->
+    @clearImage()
+    @source = source
     @loadImage()
 
   naturalBounds: () ->
@@ -156,9 +166,13 @@ class CanvasImage extends Drawable
     @w = (@naturalWidth * @scale)|0
     @h = (@naturalHeight * @scale)|0
 
+    @trigger 'resize', @frame()
+
   centerOnParent: () ->
     @x = ((@parent.frame().w / 2) - (@w / 2))|0
     @y = ((@parent.frame().h / 2) - (@h / 2))|0
+
+    @trigger 'reposition', @frame()
 
   draw: (ctx) ->
     @isolateAndMoveToParent ctx, (ctx) ->
@@ -166,17 +180,13 @@ class CanvasImage extends Drawable
 
     @drawChildren ctx
 
-  onCanvasSizeChange:  ->
-    super()
-    for child in @children
-      child.onCanvasSizeChange()
-
   loadImage: ->
     @img = document.createElement 'img'
     @img.onload = =>
+      @loaded = true
       @naturalWidth = @img.naturalWidth
       @naturalHeight = @img.naturalHeight
-      @onLoad.call @ if _.isFunction @onLoad
+      @trigger 'load', @
     @img.src = @source
 
 drawing.CanvasImage = CanvasImage
