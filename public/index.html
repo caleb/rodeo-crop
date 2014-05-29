@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <script src="lib/rodeo_crop_canvas.js"></script>
+  <script src="http://localhost:4200/build/rodeo_crop.js"></script>
 
   <style>
     body, html { height: 100%; margin: 0; padding: 0; }
@@ -27,7 +27,7 @@
     var container = document.getElementById("container");
     var w = window.getComputedStyle(container).getPropertyValue("width")
     var h = window.getComputedStyle(container).getPropertyValue("height")
-    cropper = new RodeoCrop("#container", {
+    cropper = new RodeoCrop.Cropper("#container", {
       width: parseInt(w, 10),
       height: parseInt(h, 10),
       imageSource: '/Costa%20Rican%20Frog.jpg',

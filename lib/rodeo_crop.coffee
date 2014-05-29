@@ -1,19 +1,6 @@
-'use strict'
+`import _ from "rodeo-crop/funderscore"`
 
-# http://simonsarris.com/project/canvasdemo/shapes.js
-
-# Fake underscore.js, funderscore if you will
-_ = {}
-
-_.extend = (obj, source) ->
-  if source
-    for prop of source
-      obj[prop] = source[prop]
-  obj
-
-for type in ['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp']
-  do (type) ->
-    _["is#{type}"] = (obj) -> Object.prototype.toString.call(obj) == "[object #{type}]"
+RodeoCrop = {}
 
 class Drawable
   constructor: (options) ->
@@ -597,7 +584,7 @@ class Stage extends Drawable
   clear: (ctx) ->
     ctx.clearRect 0, 0, @canvas.width, @canvas.height
 
-class window.RodeoCrop
+class Cropper
   constructor: (el, options) ->
     @el = if _.isString el
       document.querySelector el
@@ -758,3 +745,11 @@ class window.RodeoCrop
 
     @valid = true
     window.requestAnimationFrame => @runLoop()
+
+RodeoCrop.Drawable = Drawable
+RodeoCrop.CanvasImage = CanvasImage
+RodeoCrop.CropBox = CropBox
+RodeoCrop.Stage = Stage
+RodeoCrop.Cropper = Cropper
+
+`export default RodeoCrop`
