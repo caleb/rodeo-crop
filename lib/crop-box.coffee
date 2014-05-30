@@ -29,6 +29,14 @@ class CropBox extends drawing.Drawable
       # reposition the frame when the image is loaded
       @setCropFrameAndUpdateFrame @cropFrame()
 
+    @image.on 'crop', (image, previousCrop, crop) =>
+      # reposition the frame when the image is loaded
+      @cropX = if previousCrop.w >= crop.w then 0 else previousCrop.x - crop.x
+      @cropY = if previousCrop.h >= crop.h then 0 else previousCrop.y - crop.y
+      @cropWidth = if previousCrop.w >= crop.w then crop.w else previousCrop.w
+      @cropHeight = if previousCrop.h >= crop.h then crop.h else previousCrop.h
+      @setCropFrameAndUpdateFrame @cropFrame()
+
   frame: () ->
     {
       x: if @w < 0 then @x + @w else @x

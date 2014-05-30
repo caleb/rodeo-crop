@@ -20,6 +20,11 @@
     <button id="update-crop">update!</button>
 
     <button id="change-image">change image</button>
+
+    <button id="do-crop">do crop</button>
+    <button id="reset">reset</button>
+
+    <input type="checkbox" checked> Enabled
   </form>
 
   <div id="container">
@@ -92,6 +97,19 @@
       hbox.value = cropFrame.height;
     })
 
+    cropbutton = document.querySelector('#do-crop')
+    cropbutton.addEventListener('click', function(e) {
+      e.preventDefault();
+      cropper.cropImage()
+    })
+
+
+    resetbutton = document.querySelector("#reset")
+    resetbutton.addEventListener('click', function(e) {
+      e.preventDefault();
+      cropper.unCropImage()
+    })
+
     button = document.querySelector('#update-crop')
     button.addEventListener('click', function(e) {
       e.preventDefault();
@@ -107,6 +125,11 @@
       ybox.value = cropFrame.y;
       wbox.value = cropFrame.width;
       hbox.value = cropFrame.height;
+    });
+
+    checkbox = document.querySelector('[type=checkbox]')
+    checkbox.addEventListener('change', function(e) {
+      cropper.enableCrop(checkbox.checked);
     });
   </script>
 </body>

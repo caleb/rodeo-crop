@@ -9,6 +9,15 @@ class Stage extends drawing.Drawable
   initialize: (options) ->
     @canvas = options.canvas
 
+  windowToCanvas: (e) ->
+    rect = @canvas.getBoundingClientRect()
+    x = e.clientX - rect.left
+    y = e.clientY - rect.top
+
+    {
+      x: x
+      y: y
+    }
   frame: ->
     {
       x: 0
@@ -88,6 +97,7 @@ class Cropper extends Events
 
   createCropBox: () ->
     @cropBox = new CropBox
+      enabled: @cropEnabled
       canvas: @canvas
       image: @image
       cropX: @options.cropX
@@ -132,6 +142,8 @@ class Cropper extends Events
     window.addEventListener 'mousedown', (e) =>
       pos = globalToCanvas e
 
+      return unless @cropBox.enabled
+
       if @cropBox.containsCanvasPoint pos
         @mouseDown = @cropBox
         @cropBox.onMouseDown pos
@@ -147,6 +159,8 @@ class Cropper extends Events
         @dragging.onDragMove pos
         @valid = false
       else
+        return unless @cropBox.enabled
+
         pos = globalToCanvas e
         cropboxContainsPoint = @cropBox.containsCanvasPoint pos
 
@@ -169,6 +183,18 @@ class Cropper extends Events
     @valid = false
 
     @cropBox.cropFrame()
+
+  enableCrop: (enabled) ->
+    @cropBox.enabled = enabled
+    @valid = false
+
+  unCropImage: () ->
+    @image.undoCrop()
+    @valid = false
+
+  cropImage: () ->
+    @image.crop @cropBox.cropFrame()
+    @valid = false
 
   updateCanvasSize: () ->
     w = window.getComputedStyle(@canvas.parentNode).getPropertyValue 'width'
