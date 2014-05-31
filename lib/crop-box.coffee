@@ -22,6 +22,7 @@ class CropBox extends drawing.Drawable
     @cropHeight = options.cropHeight || @handleSize * 4
 
     @dragging = null
+    @mouseDown = false
 
     @handles = {}
 
@@ -36,6 +37,14 @@ class CropBox extends drawing.Drawable
       @cropWidth = if previousCrop.w >= crop.w then crop.w else previousCrop.w
       @cropHeight = if previousCrop.h >= crop.h then crop.h else previousCrop.h
       @setCropFrameAndUpdateFrame @cropFrame()
+
+    @on 'mouseout', @onMouseOut
+    @on 'mousemove', @onMouseMove
+    @on 'mousedown', @onMouseDown
+    @on 'mouseup', @onMouseUp
+    @on 'dragstart', @onDragStart
+    @on 'dragend', @onDragEnd
+    @on 'dragmove', @onDragMove
 
   frame: () ->
     {
@@ -73,6 +82,7 @@ class CropBox extends drawing.Drawable
     @h = frame.h
 
     @updateCropFrameFromFrame()
+    @markDirty()
 
   updateFrameFromCropFrame: () ->
     naturalBounds = @image.naturalBounds()
@@ -83,6 +93,8 @@ class CropBox extends drawing.Drawable
       @y = (imageBounds.h * (@cropY / naturalBounds.h))
       @w = (imageBounds.w * (@cropWidth / naturalBounds.w))
       @h = (imageBounds.h * (@cropHeight / naturalBounds.h))
+
+      @markDirty()
 
   setCropFrameAndUpdateFrame: (cropArea) ->
     naturalBounds = @image.naturalBounds()
@@ -127,10 +139,12 @@ class CropBox extends drawing.Drawable
 
     return false
 
-  onMouseOut: (point) ->
+  onMouseOut: (e) ->
     @canvas.style.cursor = 'default'
 
-  onMouseMove: (point) ->
+  onMouseMove: (e) ->
+    point = e.canvasPoint
+
     for direction, handle of @handles
       if handle.containsCanvasPoint point
         switch direction
@@ -160,10 +174,12 @@ class CropBox extends drawing.Drawable
       y: Math.min Math.max(point.y, 0), @parent.frame().h
     }
 
-  onMouseDown: (point) ->
   onMouseUp: (point) ->
-    @dragging = null
-  onDragStart: (point) ->
+    @dragging = @mouseDown = null
+
+  onDragStart: (e) ->
+    point = e.canvasPoint
+
     for direction, handle of @handles
       if handle.containsCanvasPoint point
         localPoint = handle.convertFromCanvas point
@@ -181,7 +197,9 @@ class CropBox extends drawing.Drawable
       offsetX: localPoint.x
       offsetY: localPoint.y
 
-  onDragMove: (point) ->
+  onDragMove: (e) ->
+    point = e.canvasPoint
+
     if @dragging?.object == @
       # move the whole crop area
       localPoint = @convertFromCanvas point
@@ -190,6 +208,7 @@ class CropBox extends drawing.Drawable
         y: localPoint.y - @dragging.offsetY
 
       @updateCropFrameFromFrame()
+      @markDirty()
     else if @dragging?.resizeDirection
       parentPoint = @parent.convertFromCanvas point
 
@@ -244,8 +263,11 @@ class CropBox extends drawing.Drawable
           @y = @y
 
       @updateCropFrameFromFrame()
+      @markDirty()
 
-  onDragEnd: (point) ->
+  onDragEnd: (e) ->
+    point = e.canvasPoint
+
     # reset our frame after a drag to fix negative widths/heights used during
     # the dragging process
     frame = @frame()
@@ -257,7 +279,7 @@ class CropBox extends drawing.Drawable
     # trigger our change event at the end of the change
     @trigger 'change', @cropFrame()
 
-  onClick: (point) ->
+  onClick: (e) ->
 
   moveTo: (point) ->
     pos = @convertToParent point
@@ -305,10 +327,10 @@ class CropBox extends drawing.Drawable
       w: @parent.w - (frame.x + frame.w)
       h: frame.h
 
-    @topScreen.draw ctx
-    @leftScreen.draw ctx
-    @rightScreen.draw ctx
-    @bottomScreen.draw ctx
+    @topScreen.render ctx
+    @leftScreen.render ctx
+    @rightScreen.render ctx
+    @bottomScreen.render ctx
 
   drawHandles: (ctx) ->
     frame = @frame()
@@ -340,7 +362,7 @@ class CropBox extends drawing.Drawable
     @handles["br"] = newRect frame.w, frame.h
 
     for direction, handle of @handles
-      handle.draw ctx
+      handle.render ctx
 
   drawCropLines: (ctx) ->
     frame = @frame()
@@ -352,7 +374,8 @@ class CropBox extends drawing.Drawable
     opacity = "0.5"
     lineDash = 8
 
-    @isolateAndMoveToParent ctx, (ctx) =>
+    ctx.save()
+    @positionContext ctx, (ctx) =>
       ctx.beginPath()
       ctx.strokeStyle = "rgba(255,255,255,#{opacity})"
       ctx.rect 0.5, 0.5, frame.w, frame.h
@@ -395,6 +418,8 @@ class CropBox extends drawing.Drawable
         ctx.setLineDash [lineDash]
         ctx.lineTo frame.w, y
         ctx.stroke()
+
+    ctx.restore()
 
   draw: (ctx) ->
     @drawScreen ctx

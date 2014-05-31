@@ -6,29 +6,34 @@
 
   <style>
     body, html { height: 100%; margin: 0; padding: 0; }
-    #container {
-      background-color: black;
+    .wrapper {
+      display: -webkit-flex;
+      -webkit-flex-direction: column;
       height: 100%;
-      width: 100%;
+    }
+    #container {
+      -webkit-flex-grow: 1;
+      background-color: black;
     }
   </style>
 </head>
 <body>
 
-  <form action="#">
-    <input type="text" name="x">, <input type="text" name="y"> — <input type="text" name="w">&times;<input type="text" name="h">
-    <button id="update-crop">update!</button>
+  <div class="wrapper">
+    <form action="#">
+      <input type="text" name="x">, <input type="text" name="y"> — <input type="text" name="w">&times;<input type="text" name="h">
+      <button id="update-crop">update!</button>
 
-    <button id="change-image">change image</button>
+      <button id="change-image">change image</button>
 
-    <button id="do-crop">do crop</button>
-    <button id="reset">reset</button>
+      <button id="do-crop">do crop</button>
+      <button id="reset">reset</button>
 
-    <input type="checkbox" checked> Enabled
-  </form>
+      <input type="checkbox" checked> Enabled
+    </form>
 
-  <div id="container">
-    <!-- <img src="http://placekitten.com/980/768"> -->
+    <div id="container">
+    </div>
   </div>
 
   <script>
@@ -51,6 +56,7 @@
     cropper = new RodeoCrop.Cropper("#container", {
       width: parseInt(w, 10),
       height: parseInt(h, 10),
+      handleSize: 16,
       imageSource: images[index]
     });
 

@@ -1,6 +1,9 @@
 # Fake underscore.js, funderscore if you will
 _ = {}
 
+_.clone = (obj) ->
+  _.extend {}, obj
+
 _.extend = (obj, source) ->
   if source
     for prop of source

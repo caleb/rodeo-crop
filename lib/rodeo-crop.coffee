@@ -2,38 +2,9 @@
 `import drawing from "drawing"`
 `import Events from "events"`
 `import CropBox from "crop-box"`
+`import Stage from "stage"`
 
 RodeoCrop = {}
-
-class Stage extends drawing.Drawable
-  initialize: (options) ->
-    @canvas = options.canvas
-
-  windowToCanvas: (e) ->
-    rect = @canvas.getBoundingClientRect()
-    x = e.clientX - rect.left
-    y = e.clientY - rect.top
-
-    {
-      x: x
-      y: y
-    }
-  frame: ->
-    {
-      x: 0
-      y: 0
-      w: @canvas.width
-      h: @canvas.height
-    }
-
-  bounds: ->
-    @frame()
-
-  draw: (ctx) ->
-    @drawChildren ctx
-
-  clear: (ctx) ->
-    ctx.clearRect 0, 0, @canvas.width, @canvas.height
 
 class Cropper extends Events
   constructor: (el, options) ->
@@ -48,13 +19,13 @@ class Cropper extends Events
       cropY: null
       cropWidth: null
       cropHeight: null
+      handleSize: 10
       width: 100
       height: 100
       imageSource: null
       onCropFrameChanged: null
     , options
 
-    @valid = false
     @ctx = null
     @stage = null
     @imageSource = @options.imageSource
@@ -63,7 +34,6 @@ class Cropper extends Events
     @createStage()
     @createImage()
     @createCropBox()
-    @attachListeners()
     @runLoop()
 
   initializeCanvas: () ->
@@ -80,12 +50,14 @@ class Cropper extends Events
       canvas: @canvas
 
   createImage: () ->
+    @paddedContainer = new drawing.PaddedContainer
+      padding: (@options.handleSize / 2) + 1
+
     @image = new drawing.CanvasImage
       canvas: @canvas
       source: @imageSource
 
     @image.on 'load', () =>
-      @valid = false
       @image.resizeToParent()
       @image.centerOnParent()
 
@@ -93,7 +65,8 @@ class Cropper extends Events
       @image.resizeToParent()
       @image.centerOnParent()
 
-    @stage.addChild @image
+    @paddedContainer.addChild @image
+    @stage.addChild @paddedContainer
 
   createCropBox: () ->
     @cropBox = new CropBox
@@ -104,6 +77,7 @@ class Cropper extends Events
       cropY: @options.cropY
       cropWidth: @options.cropWidth
       cropHeight: @options.cropHeight
+      handleSize: @options.handleSize
 
     @cropBox.on 'change', (cropFrame) =>
       @trigger 'change', cropFrame
@@ -113,88 +87,22 @@ class Cropper extends Events
 
     @image.addChild @cropBox
 
-  attachListeners: () ->
-    globalToCanvas = (e) =>
-      rect = @canvas.getBoundingClientRect()
-      x = e.clientX - rect.left
-      y = e.clientY - rect.top
-
-      {
-        x: x
-        y: y
-      }
-
-    window.addEventListener 'mouseup', (e) =>
-      pos = globalToCanvas e
-
-      if @dragging
-        @dragging.onDragEnd pos
-        @dragging.onMouseUp pos
-      else if @mouseDown
-        @mouseDown.onMouseUp pos
-        @mouseDown.onClick pos
-      else
-        pos = globalToCanvas e
-        @cropBox.onMouseUp pos if @cropBox.containsCanvasPoint pos
-
-      @dragging = @mouseDown = null
-
-    window.addEventListener 'mousedown', (e) =>
-      pos = globalToCanvas e
-
-      return unless @cropBox.enabled
-
-      if @cropBox.containsCanvasPoint pos
-        @mouseDown = @cropBox
-        @cropBox.onMouseDown pos
-
-    window.addEventListener 'mousemove', (e) =>
-      if @dragging || @mouseDown
-        pos = globalToCanvas e
-
-        if ! @dragging
-          @dragging = @mouseDown
-          @dragging.onDragStart pos
-
-        @dragging.onDragMove pos
-        @valid = false
-      else
-        return unless @cropBox.enabled
-
-        pos = globalToCanvas e
-        cropboxContainsPoint = @cropBox.containsCanvasPoint pos
-
-        if cropboxContainsPoint && @mouseOver != @cropBox
-          @mouseOver?.onMouseOut pos if @mouseOver
-          @mouseOver = @cropBox
-          @cropBox.onMouseIn? pos
-        else if cropboxContainsPoint && @mouseOver == @cropBox
-          @cropBox.onMouseMove? pos
-        else if ! cropboxContainsPoint && @mouseOver == @cropBox
-          @mouseOver.onMouseOut? pos
-          @mouseOver = null
-
   setImageSource: (source) ->
     @image.setSource source
-    @valid = false
 
   setCropFrame: (frame) ->
     @cropBox.setCropFrameAndUpdateFrame frame
-    @valid = false
-
     @cropBox.cropFrame()
 
   enableCrop: (enabled) ->
     @cropBox.enabled = enabled
-    @valid = false
+    @cropBox.markDirty()
 
   unCropImage: () ->
     @image.undoCrop()
-    @valid = false
 
   cropImage: () ->
     @image.crop @cropBox.cropFrame()
-    @valid = false
 
   updateCanvasSize: () ->
     w = window.getComputedStyle(@canvas.parentNode).getPropertyValue 'width'
@@ -212,14 +120,12 @@ class Cropper extends Events
 
   runLoop: (arg) ->
     canvasSizeChanged = @updateCanvasSize()
-    @valid = false if canvasSizeChanged
 
-    unless @valid
+    if canvasSizeChanged || @stage.dirty
       @stage.clear @ctx
       @stage.trigger 'resize' if canvasSizeChanged
-      @stage.draw @ctx
+      @stage.render @ctx
 
-    @valid = true
     window.requestAnimationFrame => @runLoop()
 
 RodeoCrop.Cropper = Cropper
