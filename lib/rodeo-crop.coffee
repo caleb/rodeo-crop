@@ -23,7 +23,6 @@ class Cropper extends Events
       width: 100
       height: 100
       imageSource: null
-      onCropFrameChanged: null
     , options
 
     @ctx = null
@@ -103,6 +102,9 @@ class Cropper extends Events
 
   cropImage: () ->
     @image.crop @cropBox.cropFrame()
+
+  toDataURL: (format = 'image/png') ->
+    @image.toDataURL format
 
   updateCanvasSize: () ->
     w = window.getComputedStyle(@canvas.parentNode).getPropertyValue 'width'

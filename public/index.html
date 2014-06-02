@@ -28,6 +28,7 @@
 
       <button id="do-crop">do crop</button>
       <button id="reset">reset</button>
+      <button id="dataurl">dataurl</button>
 
       <input type="checkbox" checked> Enabled
     </form>
@@ -109,6 +110,11 @@
       cropper.cropImage()
     })
 
+    dataurilbuttn = document.querySelector("#dataurl")
+    dataurilbuttn.addEventListener('click', function(e) {
+      e.preventDefault();
+      window.location = cropper.toDataURL('image/jpeg')
+    })
 
     resetbutton = document.querySelector("#reset")
     resetbutton.addEventListener('click', function(e) {

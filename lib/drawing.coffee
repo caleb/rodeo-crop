@@ -321,6 +321,19 @@ class CanvasImage extends Drawable
 
     @trigger 'reposition', @frame()
 
+  toDataURL: (format = 'image/png') ->
+    canvas = document.createElement 'canvas'
+    canvas.width = @cropWidth
+    canvas.height = @cropHeight
+    ctx = canvas.getContext '2d'
+
+    if @cropped
+      ctx.drawImage @img, @cropX, @cropY, @cropWidth, @cropHeight, 0, 0, @cropWidth, @cropHeight
+    else
+      ctx.drawImage @img, 0, 0, @cropWidth, @cropHeight
+
+    canvas.toDataURL format
+
   draw: (ctx) ->
     @positionContext ctx, (ctx) ->
       if @cropped
