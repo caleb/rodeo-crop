@@ -81,6 +81,12 @@ class Cropper extends Events
       handleSize: @options.handleSize
       marchingAnts: @options.marchingAnts
 
+    @cropBox.on 'disabled', (cropBox) =>
+      @trigger 'disabled', cropBox
+
+    @cropBox.on 'enabled', (cropBox) =>
+      @trigger 'enabled', cropBox
+
     @cropBox.on 'change', (cropFrame) =>
       @trigger 'change', cropFrame
 
@@ -93,25 +99,17 @@ class Cropper extends Events
     @image.setSource source
 
   setCropFrame: (frame) ->
-    frame = {
-      x: 0
-      y: 0
-      width: @options.handleSize * 4
-      height: @options.handleSize * 4
-    } unless frame
-
     @cropBox.setCropFrameAndUpdateFrame frame
     @cropBox.cropFrame()
 
   enableCrop: (enabled) ->
-    @cropBox.enabled = enabled
-    @cropBox.markDirty()
+    @cropBox.enable enabled
 
   unCropImage: () ->
     @image.undoCrop()
 
   cropImage: () ->
-    @image.crop @cropBox.cropFrame()
+    @image.crop @cropBox.cropFrame() if @cropBox.enabled
 
   toDataURL: (format = 'image/png') ->
     @image.toDataURL format
@@ -135,7 +133,7 @@ class Cropper extends Events
 
     if canvasSizeChanged || @stage.dirty
       @stage.clear @ctx
-      # @stage.trigger 'resize' if canvasSizeChanged
+      @stage.trigger 'resize' if canvasSizeChanged
       @stage.render @ctx
 
     window.requestAnimationFrame => @runLoop()

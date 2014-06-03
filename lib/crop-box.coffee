@@ -91,10 +91,10 @@ class CropBox extends drawing.Drawable
     @markDirty()
 
   updateFrameFromCropFrame: () ->
-    naturalBounds = @image.naturalBounds()
-    imageBounds = @image.bounds()
-
     if @image.loaded
+      naturalBounds = @image.naturalBounds()
+      imageBounds = @image.bounds()
+
       @x = (imageBounds.w * (@cropX / naturalBounds.w))
       @y = (imageBounds.h * (@cropY / naturalBounds.h))
       @w = (imageBounds.w * (@cropWidth / naturalBounds.w))
@@ -103,28 +103,33 @@ class CropBox extends drawing.Drawable
       @markDirty()
 
   setCropFrameAndUpdateFrame: (cropArea) ->
-    naturalBounds = @image.naturalBounds()
-    console.log cropArea.x, cropArea.y, cropArea.width, cropArea.height
-
     # if the image is loaded, constrain the crop frame to the natural
     # image size
     #
     # Also update the drawn frame from the new crop frame
     if @image.loaded
-      @cropX      = Math.min(Math.max(cropArea.x, 0), naturalBounds.w)
-      @cropY      = Math.min(Math.max(cropArea.y, 0), naturalBounds.h)
-      @cropWidth  = Math.min(Math.max(cropArea.width, 0), naturalBounds.w - @cropX)
-      @cropHeight = Math.min(Math.max(cropArea.height, 0), naturalBounds.h - @cropY)
+      naturalBounds = @image.naturalBounds()
+
+      # load up some sane defaults if the crop area components are null
+      newCropX      = cropArea?.x || naturalBounds.w * .125
+      newCropY      = cropArea?.y || naturalBounds.h * .125
+      newCropWidth  = cropArea?.width || naturalBounds.w * .75
+      newCropHeight = cropArea?.height || naturalBounds.h * .75
+
+      @cropX      = Math.min(Math.max(newCropX, 0), naturalBounds.w)
+      @cropY      = Math.min(Math.max(newCropY, 0), naturalBounds.h)
+      @cropWidth  = Math.min(Math.max(newCropWidth, 0), naturalBounds.w - @cropX)
+      @cropHeight = Math.min(Math.max(newCropHeight, 0), naturalBounds.h - @cropY)
 
       @updateFrameFromCropFrame()
-    else if cropArea
+    else
       # our image isn't loaded, so just set the crop area, and
       # assume that we will update the frame and constrain it when
       # it is loaded
-      @cropX = cropArea.x
-      @cropY = cropArea.y
-      @cropWidth = cropArea.width
-      @cropHeight = cropArea.height
+      @cropX = cropArea?.x
+      @cropY = cropArea?.y
+      @cropWidth = cropArea?.width
+      @cropHeight = cropArea?.height
 
   bounds: () ->
     {
