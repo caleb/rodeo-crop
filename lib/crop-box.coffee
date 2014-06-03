@@ -21,6 +21,10 @@ class CropBox extends drawing.Drawable
     @cropWidth = options.cropWidth || @handleSize * 4
     @cropHeight = options.cropHeight || @handleSize * 4
 
+    @marchingAnts = options.marchingAnts || true
+
+    @dashOffset = 0
+
     @dragging = null
     @mouseDown = false
 
@@ -45,6 +49,8 @@ class CropBox extends drawing.Drawable
     @on 'dragstart', @onDragStart
     @on 'dragend', @onDragEnd
     @on 'dragmove', @onDragMove
+
+    @setLooseTheAnts()
 
   frame: () ->
     {
@@ -98,6 +104,7 @@ class CropBox extends drawing.Drawable
 
   setCropFrameAndUpdateFrame: (cropArea) ->
     naturalBounds = @image.naturalBounds()
+    console.log cropArea.x, cropArea.y, cropArea.width, cropArea.height
 
     # if the image is loaded, constrain the crop frame to the natural
     # image size
@@ -110,7 +117,7 @@ class CropBox extends drawing.Drawable
       @cropHeight = Math.min(Math.max(cropArea.height, 0), naturalBounds.h - @cropY)
 
       @updateFrameFromCropFrame()
-    else
+    else if cropArea
       # our image isn't loaded, so just set the crop area, and
       # assume that we will update the frame and constrain it when
       # it is loaded
@@ -143,6 +150,8 @@ class CropBox extends drawing.Drawable
     @canvas.style.cursor = 'default'
 
   onMouseMove: (e) ->
+    return unless @enabled
+
     point = e.canvasPoint
 
     for direction, handle of @handles
@@ -292,6 +301,15 @@ class CropBox extends drawing.Drawable
     @x = x
     @y = y
 
+  setLooseTheAnts: ->
+    animationFn = () =>
+      if @marchingAnts
+        @dashOffset += 0.15
+        @markDirty()
+      window.requestAnimationFrame animationFn
+
+    window.requestAnimationFrame animationFn
+
   drawScreen: (ctx) ->
     frame = @frame()
     frame.x = Math.round frame.x
@@ -372,22 +390,26 @@ class CropBox extends drawing.Drawable
     frame.h = Math.round frame.h
 
     opacity = "0.5"
-    lineDash = 8
+    lineDash = 4
 
     ctx.save()
     @positionContext ctx, (ctx) =>
+      ctx.lineDashOffset = @dashOffset
+
       ctx.beginPath()
-      ctx.strokeStyle = "rgba(255,255,255,#{opacity})"
+      ctx.strokeStyle = "rgba(255,255,255,#{1||opacity})"
       ctx.rect 0.5, 0.5, frame.w, frame.h
       ctx.closePath()
       ctx.stroke()
 
       ctx.beginPath()
-      ctx.strokeStyle = "rgba(0,0,0,#{opacity})"
+      ctx.strokeStyle = "rgba(0,0,0,#{1||opacity})"
       ctx.setLineDash [lineDash]
       ctx.rect 0.5, 0.5, frame.w, frame.h
       ctx.closePath()
       ctx.stroke()
+
+      ctx.lineDashOffset = 0
 
       for x in [ frame.w / 3 + 0.5, (frame.w / 3) * 2 + 0.5 ]
         ctx.beginPath()

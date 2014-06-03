@@ -19,6 +19,7 @@ class Cropper extends Events
       cropY: null
       cropWidth: null
       cropHeight: null
+      marchingAnts: true
       handleSize: 10
       width: 100
       height: 100
@@ -39,6 +40,7 @@ class Cropper extends Events
     @canvas = document.createElement 'canvas'
     @canvas.width = @options.width
     @canvas.height = @options.height
+    @canvas.style.display = 'block'
 
     @el.appendChild @canvas
 
@@ -77,6 +79,7 @@ class Cropper extends Events
       cropWidth: @options.cropWidth
       cropHeight: @options.cropHeight
       handleSize: @options.handleSize
+      marchingAnts: @options.marchingAnts
 
     @cropBox.on 'change', (cropFrame) =>
       @trigger 'change', cropFrame
@@ -90,6 +93,13 @@ class Cropper extends Events
     @image.setSource source
 
   setCropFrame: (frame) ->
+    frame = {
+      x: 0
+      y: 0
+      width: @options.handleSize * 4
+      height: @options.handleSize * 4
+    } unless frame
+
     @cropBox.setCropFrameAndUpdateFrame frame
     @cropBox.cropFrame()
 
@@ -125,7 +135,7 @@ class Cropper extends Events
 
     if canvasSizeChanged || @stage.dirty
       @stage.clear @ctx
-      @stage.trigger 'resize' if canvasSizeChanged
+      # @stage.trigger 'resize' if canvasSizeChanged
       @stage.render @ctx
 
     window.requestAnimationFrame => @runLoop()

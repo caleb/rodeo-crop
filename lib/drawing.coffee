@@ -23,6 +23,10 @@ class Drawable extends Events
     for own key, value of options
       @[key] = value
 
+  enable: () ->
+    @enabled = true
+    @trigger 'enabled', @
+
   markDirty: () ->
     @dirty = true
     @parent.markDirty() if @parent

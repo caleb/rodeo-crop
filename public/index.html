@@ -5,14 +5,31 @@
   <script src="javascripts/rodeo-crop.js"></script>
 
   <style>
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+
     body, html { height: 100%; margin: 0; padding: 0; }
+    form {
+      height: 1.5em;
+      display: block;
+    }
     .wrapper {
       display: -webkit-flex;
+      display: -moz-flex;
+      display: -ms-flex;
+      display: flex;
       -webkit-flex-direction: column;
+      -moz-flex-direction: column;
+      flex-direction: column;
       height: 100%;
     }
     #container {
       -webkit-flex-grow: 1;
+      -moz-flex-grow: 1;
+      flex-grow: 1;
       background-color: black;
     }
   </style>
@@ -57,7 +74,7 @@
     cropper = new RodeoCrop.Cropper("#container", {
       width: parseInt(w, 10),
       height: parseInt(h, 10),
-      handleSize: 16,
+      handleSize: 10,
       imageSource: images[index]
     });
 
@@ -102,12 +119,15 @@
       ybox.value = cropFrame.y;
       wbox.value = cropFrame.width;
       hbox.value = cropFrame.height;
+
+      cropper.enableCrop(false);
     })
 
     cropbutton = document.querySelector('#do-crop')
     cropbutton.addEventListener('click', function(e) {
       e.preventDefault();
       cropper.cropImage()
+      cropper.enableCrop(false);
     })
 
     dataurilbuttn = document.querySelector("#dataurl")
