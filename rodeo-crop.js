@@ -1395,6 +1395,7 @@ define("crop-box",
             if (e.which !== 1) {
               return;
             }
+            e.preventDefault();
             pos = _this.windowToCanvas(e);
             target = _this.findChildAtPoint(pos) || _this;
             _this.bubbleMouseEvent(target, 'mouseup', e, pos);
@@ -1415,6 +1416,7 @@ define("crop-box",
             if (e.which !== 1) {
               return;
             }
+            e.preventDefault();
             pos = _this.windowToCanvas(e);
             target = _this.findChildAtPoint(pos) || _this;
             _this.bubbleMouseEvent(target, 'mousedown', e, pos);
@@ -1426,6 +1428,7 @@ define("crop-box",
         return window.addEventListener('mousemove', (function(_this) {
           return function(e) {
             var pos, target;
+            e.preventDefault();
             pos = _this.windowToCanvas(e);
             target = _this.findChildAtPoint(pos) || _this;
             _this.bubbleMouseEvent(target, 'mousemove', e, pos);
