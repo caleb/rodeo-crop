@@ -24,7 +24,6 @@ class Stage extends drawing.Drawable
   attachListeners: () ->
     window.addEventListener 'mouseup', (e) =>
       return unless e.which == 1
-      e.preventDefault()
 
       pos = @windowToCanvas e
 
@@ -38,7 +37,7 @@ class Stage extends drawing.Drawable
       @lastMouseMoveTarget = null
       @dragTarget = null
 
-    window.addEventListener 'mousedown', (e) =>
+    @canvas.addEventListener 'mousedown', (e) =>
       return unless e.which == 1
       e.preventDefault()
 
@@ -52,7 +51,6 @@ class Stage extends drawing.Drawable
       @movedSinceMouseDown = false
 
     window.addEventListener 'mousemove', (e) =>
-      e.preventDefault()
       pos = @windowToCanvas e
 
       target = @findChildAtPoint(pos) || @
