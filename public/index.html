@@ -46,6 +46,7 @@
       <button id="do-crop">do crop</button>
       <button id="reset">reset</button>
       <button id="dataurl">dataurl</button>
+      <button id="revert">revert</button>
 
       <input type="checkbox" checked> Enabled
     </form>
@@ -140,7 +141,13 @@
     resetbutton = document.querySelector("#reset")
     resetbutton.addEventListener('click', function(e) {
       e.preventDefault();
-      cropper.unCropImage()
+      cropper.undoCropImage()
+    })
+
+    revertButton = document.querySelector("#revert")
+    revertButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      cropper.revertImage()
     })
 
     button = document.querySelector('#update-crop')

@@ -95,6 +95,9 @@ class Cropper extends Events
 
     @image.addChild @cropBox
 
+  isCropped: () ->
+    @image.cropped
+
   setImageSource: (source) ->
     @image.setSource source
 
@@ -105,7 +108,10 @@ class Cropper extends Events
   enableCrop: (enabled) ->
     @cropBox.enable enabled
 
-  unCropImage: () ->
+  revertImage: () ->
+    @image.revertImage()
+
+  undoCropImage: () ->
     @image.undoCrop()
 
   cropImage: () ->

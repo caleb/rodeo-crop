@@ -979,7 +979,6 @@ define("crop-box",
 
       CanvasImage.prototype.undoCrop = function() {
         var newCropFrame, previousCropFrame;
-        this.cropped = true;
         if (this.cropStack.length > 1) {
           previousCropFrame = this.cropStack.pop();
           newCropFrame = this.cropStack[this.cropStack.length - 1];
@@ -991,7 +990,30 @@ define("crop-box",
           this.naturalHeight = newCropFrame.h;
           this.resizeToParent();
           this.centerOnParent();
+          if (this.cropStack.length === 1) {
+            this.cropped = false;
+          }
           this.trigger('crop', this, previousCropFrame, this.cropFrame());
+          return this.markDirty();
+        }
+      };
+
+      CanvasImage.prototype.revertImage = function() {
+        var newCropFrame, originalCropFrame;
+        this.cropped = false;
+        if (this.cropStack.length > 1) {
+          originalCropFrame = this.cropStack[this.cropStack.length - 1];
+          newCropFrame = this.cropStack[0];
+          this.cropX = newCropFrame.x;
+          this.cropY = newCropFrame.y;
+          this.cropWidth = newCropFrame.w;
+          this.cropHeight = newCropFrame.h;
+          this.naturalWidth = newCropFrame.w;
+          this.naturalHeight = newCropFrame.h;
+          this.resizeToParent();
+          this.centerOnParent();
+          this.cropStack = [newCropFrame];
+          this.trigger('crop', this, originalCropFrame, newCropFrame);
           return this.markDirty();
         }
       };
@@ -1285,6 +1307,10 @@ define("crop-box",
         return this.image.addChild(this.cropBox);
       };
 
+      Cropper.prototype.isCropped = function() {
+        return this.image.cropped;
+      };
+
       Cropper.prototype.setImageSource = function(source) {
         return this.image.setSource(source);
       };
@@ -1298,7 +1324,11 @@ define("crop-box",
         return this.cropBox.enable(enabled);
       };
 
-      Cropper.prototype.unCropImage = function() {
+      Cropper.prototype.revertImage = function() {
+        return this.image.revertImage();
+      };
+
+      Cropper.prototype.undoCropImage = function() {
         return this.image.undoCrop();
       };
 

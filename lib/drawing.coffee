@@ -289,8 +289,6 @@ class CanvasImage extends Drawable
     @markDirty()
 
   undoCrop: () ->
-    @cropped = true
-
     if @cropStack.length > 1
       previousCropFrame = @cropStack.pop()
       newCropFrame = @cropStack[@cropStack.length - 1]
@@ -305,7 +303,32 @@ class CanvasImage extends Drawable
       @resizeToParent()
       @centerOnParent()
 
+      @cropped = false if @cropStack.length == 1
+
       @trigger 'crop', @, previousCropFrame, @cropFrame()
+
+      @markDirty()
+
+  revertImage: () ->
+    @cropped = false
+
+    if @cropStack.length > 1
+      originalCropFrame = @cropStack[@cropStack.length - 1]
+      newCropFrame = @cropStack[0]
+
+      @cropX = newCropFrame.x
+      @cropY = newCropFrame.y
+      @cropWidth = newCropFrame.w
+      @cropHeight = newCropFrame.h
+      @naturalWidth = newCropFrame.w
+      @naturalHeight = newCropFrame.h
+
+      @resizeToParent()
+      @centerOnParent()
+
+      @cropStack = [newCropFrame]
+
+      @trigger 'crop', @, originalCropFrame, newCropFrame
 
       @markDirty()
 
