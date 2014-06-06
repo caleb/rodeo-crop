@@ -22,25 +22,21 @@ class Stage extends drawing.Drawable
     target.bubble event, eventObject
 
   attachListeners: () ->
-    window.addEventListener 'mouseup', (e) =>
+    @canvas.addEventListener 'mouseup', (e) =>
       return unless e.which == 1
-
       pos = @windowToCanvas e
 
       target = @findChildAtPoint(pos) || @
       @bubbleMouseEvent target, 'mouseup', e, pos
 
       @bubbleMouseEvent @clickTarget, 'click', e, pos if @clickTarget == target
-      @bubbleMouseEvent @dragTarget, 'dragend', e, pos if @dragTarget
 
       @lastMouseDownTarget = null
       @lastMouseMoveTarget = null
-      @dragTarget = null
+      @clickTarget = null
 
     @canvas.addEventListener 'mousedown', (e) =>
       return unless e.which == 1
-      e.preventDefault()
-
       pos = @windowToCanvas e
 
       target = @findChildAtPoint(pos) || @
@@ -50,24 +46,58 @@ class Stage extends drawing.Drawable
       @clickTarget = target
       @movedSinceMouseDown = false
 
-    window.addEventListener 'mousemove', (e) =>
+      mouseMoveListener = (e) =>
+        e.preventDefault()
+        pos = @windowToCanvas e
+
+        if @lastMouseDownTarget
+          if ! @dragTarget
+            @bubbleMouseEvent @lastMouseDownTarget, 'dragstart', e, pos
+            @dragTarget = @lastMouseDownTarget
+
+          @bubbleMouseEvent @dragTarget, 'dragmove', e, pos
+
+      mouseUpListener = (e) =>
+        e.preventDefault()
+
+        if @dragTarget
+          pos = @windowToCanvas e
+          @bubbleMouseEvent @dragTarget, 'dragend', e, pos
+
+        @lastMouseDownTarget = null
+        @lastMouseMoveTarget = null
+        @dragTarget = null
+
+        @clickTarget = null unless @canvasContainsWindowPoint(e)
+
+        window.removeEventListener 'mousemove', mouseMoveListener
+        window.removeEventListener 'mouseup', mouseUpListener
+
+      window.addEventListener 'mousemove', mouseMoveListener
+      window.addEventListener 'mouseup', mouseUpListener
+
+    @canvas.addEventListener 'mouseout', (e) =>
+      pos = @windowToCanvas e
+      @bubbleMouseEvent @lastMouseMoveTarget, 'mouseout', e, pos if @lastMouseMoveTarget
+
+    @canvas.addEventListener 'mousemove', (e) =>
       pos = @windowToCanvas e
 
       target = @findChildAtPoint(pos) || @
       @bubbleMouseEvent target, 'mousemove', e, pos
-
-      if @lastMouseDownTarget
-        if ! @dragTarget
-          @bubbleMouseEvent @lastMouseDownTarget, 'dragstart', e, pos
-          @dragTarget = @lastMouseDownTarget
-
-        @bubbleMouseEvent @dragTarget, 'dragmove', e, pos
 
       if target != @lastMouseMoveTarget
         @bubbleMouseEvent @lastMouseMoveTarget, 'mouseout', e, pos if @lastMouseMoveTarget
         @bubbleMouseEvent target, 'mouseover', e, pos
 
       @lastMouseMoveTarget = target
+
+  canvasContainsWindowPoint: (e) ->
+    rect = @canvas.getBoundingClientRect()
+    e.clientX >= rect.left &&
+      e.clientX <= rect.right &&
+      e.clientY >= rect.top &&
+      e.clientY <= rect.bottom
 
   windowToCanvas: (e) ->
     rect = @canvas.getBoundingClientRect()

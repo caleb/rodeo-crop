@@ -1419,7 +1419,7 @@ define("crop-box",
       };
 
       Stage.prototype.attachListeners = function() {
-        window.addEventListener('mouseup', (function(_this) {
+        this.canvas.addEventListener('mouseup', (function(_this) {
           return function(e) {
             var pos, target;
             if (e.which !== 1) {
@@ -1431,42 +1431,68 @@ define("crop-box",
             if (_this.clickTarget === target) {
               _this.bubbleMouseEvent(_this.clickTarget, 'click', e, pos);
             }
-            if (_this.dragTarget) {
-              _this.bubbleMouseEvent(_this.dragTarget, 'dragend', e, pos);
-            }
             _this.lastMouseDownTarget = null;
             _this.lastMouseMoveTarget = null;
-            return _this.dragTarget = null;
+            return _this.clickTarget = null;
           };
         })(this));
         this.canvas.addEventListener('mousedown', (function(_this) {
           return function(e) {
-            var pos, target;
+            var mouseMoveListener, mouseUpListener, pos, target;
             if (e.which !== 1) {
               return;
             }
-            e.preventDefault();
             pos = _this.windowToCanvas(e);
             target = _this.findChildAtPoint(pos) || _this;
             _this.bubbleMouseEvent(target, 'mousedown', e, pos);
             _this.lastMouseDownTarget = target;
             _this.clickTarget = target;
-            return _this.movedSinceMouseDown = false;
+            _this.movedSinceMouseDown = false;
+            mouseMoveListener = function(e) {
+              e.preventDefault();
+              pos = _this.windowToCanvas(e);
+              if (_this.lastMouseDownTarget) {
+                if (!_this.dragTarget) {
+                  _this.bubbleMouseEvent(_this.lastMouseDownTarget, 'dragstart', e, pos);
+                  _this.dragTarget = _this.lastMouseDownTarget;
+                }
+                return _this.bubbleMouseEvent(_this.dragTarget, 'dragmove', e, pos);
+              }
+            };
+            mouseUpListener = function(e) {
+              e.preventDefault();
+              if (_this.dragTarget) {
+                pos = _this.windowToCanvas(e);
+                _this.bubbleMouseEvent(_this.dragTarget, 'dragend', e, pos);
+              }
+              _this.lastMouseDownTarget = null;
+              _this.lastMouseMoveTarget = null;
+              _this.dragTarget = null;
+              if (!_this.canvasContainsWindowPoint(e)) {
+                _this.clickTarget = null;
+              }
+              window.removeEventListener('mousemove', mouseMoveListener);
+              return window.removeEventListener('mouseup', mouseUpListener);
+            };
+            window.addEventListener('mousemove', mouseMoveListener);
+            return window.addEventListener('mouseup', mouseUpListener);
           };
         })(this));
-        return window.addEventListener('mousemove', (function(_this) {
+        this.canvas.addEventListener('mouseout', (function(_this) {
+          return function(e) {
+            var pos;
+            pos = _this.windowToCanvas(e);
+            if (_this.lastMouseMoveTarget) {
+              return _this.bubbleMouseEvent(_this.lastMouseMoveTarget, 'mouseout', e, pos);
+            }
+          };
+        })(this));
+        return this.canvas.addEventListener('mousemove', (function(_this) {
           return function(e) {
             var pos, target;
             pos = _this.windowToCanvas(e);
             target = _this.findChildAtPoint(pos) || _this;
             _this.bubbleMouseEvent(target, 'mousemove', e, pos);
-            if (_this.lastMouseDownTarget) {
-              if (!_this.dragTarget) {
-                _this.bubbleMouseEvent(_this.lastMouseDownTarget, 'dragstart', e, pos);
-                _this.dragTarget = _this.lastMouseDownTarget;
-              }
-              _this.bubbleMouseEvent(_this.dragTarget, 'dragmove', e, pos);
-            }
             if (target !== _this.lastMouseMoveTarget) {
               if (_this.lastMouseMoveTarget) {
                 _this.bubbleMouseEvent(_this.lastMouseMoveTarget, 'mouseout', e, pos);
@@ -1476,6 +1502,12 @@ define("crop-box",
             return _this.lastMouseMoveTarget = target;
           };
         })(this));
+      };
+
+      Stage.prototype.canvasContainsWindowPoint = function(e) {
+        var rect;
+        rect = this.canvas.getBoundingClientRect();
+        return e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
       };
 
       Stage.prototype.windowToCanvas = function(e) {
