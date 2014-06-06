@@ -71,7 +71,7 @@ class Cropper extends Events
 
   createCropBox: () ->
     @cropBox = new CropBox
-      enabled: @cropEnabled
+      enabled: @options.cropEnabled
       canvas: @canvas
       image: @image
       cropX: @options.cropX

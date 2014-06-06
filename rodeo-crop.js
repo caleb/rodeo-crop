@@ -1252,7 +1252,7 @@ define("crop-box",
 
       Cropper.prototype.createCropBox = function() {
         this.cropBox = new CropBox({
-          enabled: this.cropEnabled,
+          enabled: this.options.cropEnabled,
           canvas: this.canvas,
           image: this.image,
           cropX: this.options.cropX,
