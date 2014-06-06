@@ -628,7 +628,7 @@ define("crop-box",
         this.canvas = options.canvas;
         this.children = options.children || [];
         this.dragable = options.dragable || false;
-        this.enabled = options.enabled || true;
+        this.enabled = options.enabled !== void 0 ? !!options.enabled : true;
       }
 
       Drawable.prototype.set = function(options) {

@@ -17,7 +17,7 @@ class Drawable extends Events
     @canvas = options.canvas
     @children = options.children || []
     @dragable = options.dragable || false
-    @enabled = options.enabled || true
+    @enabled = if options.enabled != undefined then !!options.enabled else true
 
   set: (options) ->
     for own key, value of options
