@@ -91,6 +91,10 @@ define("canvas-image",
         return this.markDirty();
       };
 
+      CanvasImage.prototype.getSource = function() {
+        return this.source;
+      };
+
       CanvasImage.prototype.setSource = function(source) {
         this.clearImage();
         this.source = source;
@@ -1323,6 +1327,10 @@ define("canvas-image",
 
       Cropper.prototype.isCropped = function() {
         return this.image.cropped;
+      };
+
+      Cropper.prototype.getImageSource = function() {
+        return this.image.getSource();
       };
 
       Cropper.prototype.setImageSource = function(source) {
