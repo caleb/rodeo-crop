@@ -1,6 +1,7 @@
 `import _ from "funderscore"`
 `import drawing from "drawing"`
 `import Events from "events"`
+`import CanvasImage from "canvas-image"`
 `import CropBox from "crop-box"`
 `import Stage from "stage"`
 
@@ -54,7 +55,7 @@ class Cropper extends Events
     @paddedContainer = new drawing.PaddedContainer
       padding: (@options.handleSize / 2) + 1
 
-    @image = new drawing.CanvasImage
+    @image = new CanvasImage
       canvas: @canvas
       source: @imageSource
 

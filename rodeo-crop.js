@@ -51,7 +51,645 @@ var define, requireModule, require, requirejs;
     }
   };
 })();
-define("crop-box", 
+define("canvas-image", 
+  ["drawing","exports"],
+  function(__dependency1__, __exports__) {
+    "use strict";
+    var drawing = __dependency1__["default"];
+    var CanvasImage,
+      __hasProp = {}.hasOwnProperty,
+      __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+
+    CanvasImage = (function(_super) {
+      __extends(CanvasImage, _super);
+
+      function CanvasImage(options) {
+        CanvasImage.__super__.constructor.call(this, options);
+        this.source = options.source;
+        this.naturalWidth = options.naturalWidth;
+        this.naturalHeight = options.naturalHeight;
+        this.originalNaturalBounds = this.naturalBounds();
+        this.cropped = false;
+        this.history = [];
+        this.loaded = false;
+        this.cropX = 0;
+        this.cropY = 0;
+        this.cropWidth = this.naturalWidth;
+        this.cropHeight = this.naturalHeight;
+        this.loadImage();
+      }
+
+      CanvasImage.prototype.clearImage = function() {
+        this.loaded = false;
+        this.cropped = false;
+        this.w = null;
+        this.h = null;
+        this.naturalWidth = null;
+        this.naturalHeight = null;
+        this.history = [];
+        this.originalNaturalBounds = this.naturalBounds();
+        return this.markDirty();
+      };
+
+      CanvasImage.prototype.setSource = function(source) {
+        this.clearImage();
+        this.source = source;
+        return this.loadImage();
+      };
+
+      CanvasImage.prototype.naturalBounds = function() {
+        return {
+          x: 0,
+          y: 0,
+          w: this.naturalWidth,
+          h: this.naturalHeight
+        };
+      };
+
+      CanvasImage.prototype.cropFrame = function() {
+        return {
+          x: this.cropX,
+          y: this.cropY,
+          w: this.cropWidth,
+          h: this.cropHeight
+        };
+      };
+
+      CanvasImage.prototype.crop = function(frame) {
+        var previousCrop;
+        if (!this.cropped) {
+          this.cropped = true;
+          this.cropX = this.cropY = 0;
+        }
+        previousCrop = this.cropFrame();
+        this.cropX = frame.x + this.cropX;
+        this.cropY = frame.y + this.cropY;
+        this.cropWidth = frame.width;
+        this.cropHeight = frame.height;
+        this.naturalWidth = this.cropWidth;
+        this.naturalHeight = this.cropHeight;
+        this.resizeToParent();
+        this.centerOnParent();
+        this.history.push({
+          action: 'crop',
+          fromCropFrame: previousCrop,
+          toCropFrame: this.cropFrame()
+        });
+        this.trigger('crop', this, previousCrop, this.cropFrame());
+        return this.markDirty();
+      };
+
+      CanvasImage.prototype.undoCrop = function() {
+        var cropHistory, newCropFrame;
+        if (this.history.length > 0) {
+          cropHistory = this.history.pop();
+          newCropFrame = cropHistory.fromCropFrame;
+          this.cropX = newCropFrame.x;
+          this.cropY = newCropFrame.y;
+          this.cropWidth = newCropFrame.w;
+          this.cropHeight = newCropFrame.h;
+          this.naturalWidth = newCropFrame.w;
+          this.naturalHeight = newCropFrame.h;
+          this.resizeToParent();
+          this.centerOnParent();
+          if (this.history.length === 0) {
+            this.cropped = false;
+          }
+          this.trigger('crop', this, cropHistory.toCropFrame, this.cropFrame());
+          return this.markDirty();
+        }
+      };
+
+      CanvasImage.prototype.revertImage = function() {
+        var cropHistory;
+        this.cropped = false;
+        if (this.history.length > 0) {
+          cropHistory = this.history.pop();
+          this.cropX = 0;
+          this.cropY = 0;
+          this.cropWidth = this.originalNaturalBounds.w;
+          this.cropHeight = this.originalNaturalBounds.h;
+          this.naturalWidth = this.originalNaturalBounds.w;
+          this.naturalHeight = this.originalNaturalBounds.h;
+          this.resizeToParent();
+          this.centerOnParent();
+          this.trigger('crop', this, cropHistory.toCropFrame, this.cropFrame());
+          this.history = [];
+          return this.markDirty();
+        }
+      };
+
+      CanvasImage.prototype.resizeToParent = function() {
+        var ch, cw, scaleX, scaleY;
+        cw = this.parent.frame().w;
+        ch = this.parent.frame().h;
+        scaleX = 1;
+        scaleY = 1;
+        if (this.naturalWidth > cw) {
+          scaleX = cw / this.naturalWidth;
+        }
+        if (this.naturalHeight > ch) {
+          scaleY = ch / this.naturalHeight;
+        }
+        this.scale = Math.min(scaleX, scaleY);
+        this.w = (this.naturalWidth * this.scale) | 0;
+        this.h = (this.naturalHeight * this.scale) | 0;
+        return this.trigger('resize', this.frame());
+      };
+
+      CanvasImage.prototype.centerOnParent = function() {
+        this.x = ((this.parent.frame().w / 2) - (this.w / 2)) | 0;
+        this.y = ((this.parent.frame().h / 2) - (this.h / 2)) | 0;
+        return this.trigger('reposition', this.frame());
+      };
+
+      CanvasImage.prototype.toDataURL = function(format) {
+        var canvas, ctx;
+        if (format == null) {
+          format = 'image/png';
+        }
+        canvas = document.createElement('canvas');
+        canvas.width = this.cropWidth;
+        canvas.height = this.cropHeight;
+        ctx = canvas.getContext('2d');
+        if (this.cropped) {
+          ctx.drawImage(this.img, this.cropX, this.cropY, this.cropWidth, this.cropHeight, 0, 0, this.cropWidth, this.cropHeight);
+        } else {
+          ctx.drawImage(this.img, 0, 0, this.cropWidth, this.cropHeight);
+        }
+        return canvas.toDataURL(format);
+      };
+
+      CanvasImage.prototype.draw = function(ctx) {
+        return this.positionContext(ctx, function(ctx) {
+          if (this.cropped) {
+            return ctx.drawImage(this.img, this.cropX, this.cropY, this.cropWidth, this.cropHeight, 0, 0, this.w, this.h);
+          } else {
+            return ctx.drawImage(this.img, 0, 0, this.w, this.h);
+          }
+        });
+      };
+
+      CanvasImage.prototype.loadImage = function() {
+        this.img = document.createElement('img');
+        this.img.onload = (function(_this) {
+          return function() {
+            _this.loaded = true;
+            _this.naturalWidth = _this.img.naturalWidth;
+            _this.naturalHeight = _this.img.naturalHeight;
+            _this.cropped = false;
+            _this.history = [];
+            _this.cropX = 0;
+            _this.cropY = 0;
+            _this.cropWidth = _this.img.naturalWidth;
+            _this.cropHeight = _this.img.naturalHeight;
+            _this.originalNaturalBounds = _this.naturalBounds();
+            _this.markDirty();
+            return _this.trigger('load', _this);
+          };
+        })(this);
+        return this.img.src = this.source;
+      };
+
+      return CanvasImage;
+
+    })(drawing.Drawable);
+
+    __exports__["default"] = CanvasImage;
+  });define("drawing", 
+  ["funderscore","events","exports"],
+  function(__dependency1__, __dependency2__, __exports__) {
+    "use strict";
+    var _ = __dependency1__["default"];
+    var Events = __dependency2__["default"];
+    var Drawable, PaddedContainer, Rectangle, drawing,
+      __hasProp = {}.hasOwnProperty,
+      __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+      __slice = [].slice;
+
+    drawing = {};
+
+    Drawable = (function(_super) {
+      __extends(Drawable, _super);
+
+      function Drawable(options) {
+        this.options = options;
+        this.x = options.x;
+        this.y = options.y;
+        this.w = options.w;
+        this.h = options.h;
+        this.dirty = true;
+        this.scale = options.scale;
+        this.parent = options.parent;
+        this.canvas = options.canvas;
+        this.children = options.children || [];
+        this.dragable = options.dragable || false;
+        this.enabled = options.enabled !== void 0 ? !!options.enabled : true;
+      }
+
+      Drawable.prototype.set = function(options) {
+        var key, value, _results;
+        _results = [];
+        for (key in options) {
+          if (!__hasProp.call(options, key)) continue;
+          value = options[key];
+          _results.push(this[key] = value);
+        }
+        return _results;
+      };
+
+      Drawable.prototype.enable = function(enabled) {
+        var previous;
+        previous = this.enabled;
+        this.enabled = !!enabled;
+        this.markDirty();
+        if (previous !== this.enabled) {
+          if (this.enabled) {
+            return this.trigger('enabled', this);
+          } else {
+            return this.trigger('disabled', this);
+          }
+        }
+      };
+
+      Drawable.prototype.markDirty = function() {
+        this.dirty = true;
+        if (this.parent) {
+          return this.parent.markDirty();
+        }
+      };
+
+      Drawable.prototype.bubble = function() {
+        var args, event, eventName, parent, _results;
+        eventName = arguments[0], event = arguments[1], args = 3 <= arguments.length ? __slice.call(arguments, 2) : [];
+        event.currentTarget = this;
+        this.trigger.apply(this, arguments);
+        parent = this.parent;
+        _results = [];
+        while (parent) {
+          event = _.clone(event);
+          event.currentTarget = parent;
+          parent.trigger.apply(parent, [eventName, event].concat(args));
+          _results.push(parent = parent.parent);
+        }
+        return _results;
+      };
+
+      Drawable.prototype.findChildAtPoint = function(point) {
+        var child, grandChild, i;
+        i = this.children.length - 1;
+        while (i >= 0) {
+          child = this.children[i];
+          grandChild = child.findChildAtPoint(point);
+          if (grandChild) {
+            return grandChild;
+          } else {
+            if (child.containsCanvasPoint(point)) {
+              return child;
+            }
+          }
+          i--;
+        }
+      };
+
+      Drawable.prototype.bounds = function() {
+        return {
+          x: 0,
+          y: 0,
+          w: this.w,
+          h: this.h
+        };
+      };
+
+      Drawable.prototype.frame = function() {
+        return {
+          x: this.x,
+          y: this.y,
+          w: this.w,
+          h: this.h
+        };
+      };
+
+      Drawable.prototype.convertToParent = function(point) {
+        var frame;
+        frame = this.frame();
+        return {
+          x: point.x + frame.x,
+          y: point.y + frame.y
+        };
+      };
+
+      Drawable.prototype.convertFromParent = function(point) {
+        var frame;
+        frame = this.frame();
+        return {
+          x: point.x - frame.x,
+          y: point.y - frame.y
+        };
+      };
+
+      Drawable.prototype.convertToCanvas = function(point) {
+        var parent, x, y;
+        parent = this;
+        x = point.x;
+        y = point.y;
+        while (parent) {
+          x += parent.frame().x;
+          y += parent.frame().y;
+          parent = parent.parent;
+        }
+        return {
+          x: x,
+          y: y
+        };
+      };
+
+      Drawable.prototype.convertFromCanvas = function(point) {
+        var parent, x, y;
+        parent = this;
+        x = point.x;
+        y = point.y;
+        while (parent) {
+          x -= parent.frame().x;
+          y -= parent.frame().y;
+          parent = parent.parent;
+        }
+        return {
+          x: x,
+          y: y
+        };
+      };
+
+      Drawable.prototype.positionContext = function(ctx, fn) {
+        var pos;
+        if (this.parent) {
+          pos = this.convertToCanvas(this.parent.bounds());
+          ctx.translate(pos.x, pos.y);
+        }
+        return fn.call(this, ctx);
+      };
+
+      Drawable.prototype.containsCanvasPoint = function(point) {
+        var localPoint;
+        localPoint = this.convertFromCanvas(point);
+        return this.containsPoint(localPoint);
+      };
+
+      Drawable.prototype.containsPoint = function(point) {
+        var frame, _ref, _ref1;
+        frame = this.frame();
+        return (0 <= (_ref = point.x) && _ref <= frame.w) && (0 <= (_ref1 = point.y) && _ref1 <= frame.h);
+      };
+
+      Drawable.prototype.addChild = function(child) {
+        child.parent = this;
+        this.children.push(child);
+        return this.markDirty();
+      };
+
+      Drawable.prototype.removeChild = function(child) {
+        var i;
+        i = this.children.indexOf(child);
+        if (i >= 0) {
+          child.parent = null;
+          this.children.splice(i, 1);
+          return this.markDirty();
+        }
+      };
+
+      Drawable.prototype.renderChildren = function(ctx) {
+        var child, _i, _len, _ref, _results;
+        _ref = this.children;
+        _results = [];
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          child = _ref[_i];
+          if (child.enabled) {
+            _results.push(child.render(ctx));
+          } else {
+            _results.push(void 0);
+          }
+        }
+        return _results;
+      };
+
+      Drawable.prototype.clear = function(ctx) {
+        var frame;
+        frame = this.frame();
+        if (this.parent) {
+          return positionContext(ctx, (function(_this) {
+            return function(ctx) {
+              return ctx.clearRect(frame.x, frame.y, frame.w, frame.h);
+            };
+          })(this));
+        } else {
+          return ctx.clearRect(frame.x, frame.y, frame.w, frame.h);
+        }
+      };
+
+      Drawable.prototype.render = function(ctx) {
+        ctx.save();
+        this.draw(ctx);
+        ctx.restore();
+        this.renderChildren(ctx);
+        return this.dirty = false;
+      };
+
+      Drawable.prototype.draw = function(ctx) {};
+
+      return Drawable;
+
+    })(Events);
+
+    drawing.Drawable = Drawable;
+
+    PaddedContainer = (function(_super) {
+      __extends(PaddedContainer, _super);
+
+      function PaddedContainer(options) {
+        if (options == null) {
+          options = {};
+        }
+        PaddedContainer.__super__.constructor.call(this, options);
+        this.padding = options.padding || 10;
+        this.fillParent = options.fillParent || true;
+      }
+
+      PaddedContainer.prototype.frame = function() {
+        var parentFrame;
+        if (this.fillParent) {
+          parentFrame = this.parent.frame();
+          return {
+            x: this.padding,
+            y: this.padding,
+            w: parentFrame.w - 2 * this.padding,
+            h: parentFrame.h - 2 * this.padding
+          };
+        } else {
+          return {
+            x: this.x + this.padding,
+            y: this.y + this.padding,
+            w: this.w - 2 * this.padding,
+            h: this.h - 2 * this.padding
+          };
+        }
+      };
+
+      PaddedContainer.prototype.bounds = function() {
+        var parentFrame;
+        if (this.fillParent) {
+          parentFrame = this.parent.frame();
+          return {
+            x: 0,
+            y: 0,
+            w: parentFrame.w - 2 * this.padding,
+            h: parentFrame.h - 2 * this.padding
+          };
+        } else {
+          return {
+            x: 0,
+            y: 0,
+            w: this.w - 2 * this.padding,
+            h: this.h - 2 * this.padding
+          };
+        }
+      };
+
+      return PaddedContainer;
+
+    })(Drawable);
+
+    drawing.PaddedContainer = PaddedContainer;
+
+    Rectangle = (function(_super) {
+      __extends(Rectangle, _super);
+
+      function Rectangle(options) {
+        Rectangle.__super__.constructor.call(this, options);
+        this.fillStyle = options.fillStyle || 'rgba(0, 0, 0, 0)';
+        this.strokeStyle = options.strokeStyle;
+        this.lineWidth = options.lineWidth;
+      }
+
+      Rectangle.prototype.draw = function(ctx) {
+        return this.positionContext(ctx, (function(_this) {
+          return function(ctx) {
+            if (_this.fillStyle) {
+              ctx.fillStyle = _this.fillStyle;
+            }
+            if (_this.strokeStyle) {
+              ctx.strokeStyle = _this.strokeStyle;
+            }
+            if (_this.lineWidth) {
+              ctx.lineWidth = _this.lineWidth;
+            }
+            ctx.beginPath();
+            ctx.rect(0, 0, _this.w, _this.h);
+            ctx.closePath();
+            if (_this.fillStyle) {
+              ctx.fill();
+            }
+            if (_this.lineWidth && _this.strokeStyle) {
+              return ctx.stroke();
+            }
+          };
+        })(this));
+      };
+
+      return Rectangle;
+
+    })(Drawable);
+
+    drawing.Rectangle = Rectangle;
+
+    __exports__["default"] = drawing;
+  });define("funderscore", 
+  ["exports"],
+  function(__exports__) {
+    "use strict";
+    var type, _, _fn, _i, _len, _ref;
+
+    _ = {};
+
+    _.clone = function(obj) {
+      return _.extend({}, obj);
+    };
+
+    _.extend = function(obj, source) {
+      var prop;
+      if (source) {
+        for (prop in source) {
+          obj[prop] = source[prop];
+        }
+      }
+      return obj;
+    };
+
+    _ref = ['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp'];
+    _fn = function(type) {
+      return _["is" + type] = function(obj) {
+        return Object.prototype.toString.call(obj) === ("[object " + type + "]");
+      };
+    };
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      type = _ref[_i];
+      _fn(type);
+    }
+
+    __exports__["default"] = _;
+  });define("events", 
+  ["funderscore","exports"],
+  function(__dependency1__, __exports__) {
+    "use strict";
+    var _ = __dependency1__["default"];
+    var Event, Events;
+
+    Events = (function() {
+      function Events() {}
+
+      Events.prototype.on = function(event, callback, context) {
+        var _base;
+        this.events || (this.events = {});
+        (_base = this.events)[event] || (_base[event] = []);
+        if (_.isFunction(callback)) {
+          return this.events[event].push([callback, context]);
+        }
+      };
+
+      Events.prototype.trigger = function(event) {
+        var callback, callbackStruct, callbacks, context, tail, _i, _len, _results;
+        tail = Array.prototype.slice.call(arguments, 1);
+        callbacks = this.events && this.events[event] ? this.events[event] : [];
+        _results = [];
+        for (_i = 0, _len = callbacks.length; _i < _len; _i++) {
+          callbackStruct = callbacks[_i];
+          callback = callbackStruct[0];
+          context = callbackStruct[1] || this;
+          _results.push(callback.apply(context, tail));
+        }
+        return _results;
+      };
+
+      return Events;
+
+    })();
+
+    Event = (function() {
+      function Event(options) {
+        var k, v;
+        for (k in options) {
+          v = options[k];
+          this[k] = v;
+        }
+      }
+
+      return Event;
+
+    })();
+
+    __exports__["default"] = Events;
+
+    __exports__.Event = Event;
+  });define("crop-box", 
   ["funderscore","drawing","exports"],
   function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
@@ -566,640 +1204,16 @@ define("crop-box",
     })(drawing.Drawable);
 
     __exports__["default"] = CropBox;
-  });define("funderscore", 
-  ["exports"],
-  function(__exports__) {
-    "use strict";
-    var type, _, _fn, _i, _len, _ref;
-
-    _ = {};
-
-    _.clone = function(obj) {
-      return _.extend({}, obj);
-    };
-
-    _.extend = function(obj, source) {
-      var prop;
-      if (source) {
-        for (prop in source) {
-          obj[prop] = source[prop];
-        }
-      }
-      return obj;
-    };
-
-    _ref = ['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp'];
-    _fn = function(type) {
-      return _["is" + type] = function(obj) {
-        return Object.prototype.toString.call(obj) === ("[object " + type + "]");
-      };
-    };
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      type = _ref[_i];
-      _fn(type);
-    }
-
-    __exports__["default"] = _;
-  });define("drawing", 
-  ["funderscore","events","exports"],
-  function(__dependency1__, __dependency2__, __exports__) {
-    "use strict";
-    var _ = __dependency1__["default"];
-    var Events = __dependency2__["default"];
-    var CanvasImage, Drawable, PaddedContainer, Rectangle, drawing,
-      __hasProp = {}.hasOwnProperty,
-      __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-      __slice = [].slice;
-
-    drawing = {};
-
-    Drawable = (function(_super) {
-      __extends(Drawable, _super);
-
-      function Drawable(options) {
-        this.options = options;
-        this.x = options.x;
-        this.y = options.y;
-        this.w = options.w;
-        this.h = options.h;
-        this.dirty = true;
-        this.scale = options.scale;
-        this.parent = options.parent;
-        this.canvas = options.canvas;
-        this.children = options.children || [];
-        this.dragable = options.dragable || false;
-        this.enabled = options.enabled !== void 0 ? !!options.enabled : true;
-      }
-
-      Drawable.prototype.set = function(options) {
-        var key, value, _results;
-        _results = [];
-        for (key in options) {
-          if (!__hasProp.call(options, key)) continue;
-          value = options[key];
-          _results.push(this[key] = value);
-        }
-        return _results;
-      };
-
-      Drawable.prototype.enable = function(enabled) {
-        var previous;
-        previous = this.enabled;
-        this.enabled = !!enabled;
-        this.markDirty();
-        if (previous !== this.enabled) {
-          if (this.enabled) {
-            return this.trigger('enabled', this);
-          } else {
-            return this.trigger('disabled', this);
-          }
-        }
-      };
-
-      Drawable.prototype.markDirty = function() {
-        this.dirty = true;
-        if (this.parent) {
-          return this.parent.markDirty();
-        }
-      };
-
-      Drawable.prototype.bubble = function() {
-        var args, event, eventName, parent, _results;
-        eventName = arguments[0], event = arguments[1], args = 3 <= arguments.length ? __slice.call(arguments, 2) : [];
-        event.currentTarget = this;
-        this.trigger.apply(this, arguments);
-        parent = this.parent;
-        _results = [];
-        while (parent) {
-          event = _.clone(event);
-          event.currentTarget = parent;
-          parent.trigger.apply(parent, [eventName, event].concat(args));
-          _results.push(parent = parent.parent);
-        }
-        return _results;
-      };
-
-      Drawable.prototype.findChildAtPoint = function(point) {
-        var child, grandChild, i;
-        i = this.children.length - 1;
-        while (i >= 0) {
-          child = this.children[i];
-          grandChild = child.findChildAtPoint(point);
-          if (grandChild) {
-            return grandChild;
-          } else {
-            if (child.containsCanvasPoint(point)) {
-              return child;
-            }
-          }
-          i--;
-        }
-      };
-
-      Drawable.prototype.bounds = function() {
-        return {
-          x: 0,
-          y: 0,
-          w: this.w,
-          h: this.h
-        };
-      };
-
-      Drawable.prototype.frame = function() {
-        return {
-          x: this.x,
-          y: this.y,
-          w: this.w,
-          h: this.h
-        };
-      };
-
-      Drawable.prototype.convertToParent = function(point) {
-        var frame;
-        frame = this.frame();
-        return {
-          x: point.x + frame.x,
-          y: point.y + frame.y
-        };
-      };
-
-      Drawable.prototype.convertFromParent = function(point) {
-        var frame;
-        frame = this.frame();
-        return {
-          x: point.x - frame.x,
-          y: point.y - frame.y
-        };
-      };
-
-      Drawable.prototype.convertToCanvas = function(point) {
-        var parent, x, y;
-        parent = this;
-        x = point.x;
-        y = point.y;
-        while (parent) {
-          x += parent.frame().x;
-          y += parent.frame().y;
-          parent = parent.parent;
-        }
-        return {
-          x: x,
-          y: y
-        };
-      };
-
-      Drawable.prototype.convertFromCanvas = function(point) {
-        var parent, x, y;
-        parent = this;
-        x = point.x;
-        y = point.y;
-        while (parent) {
-          x -= parent.frame().x;
-          y -= parent.frame().y;
-          parent = parent.parent;
-        }
-        return {
-          x: x,
-          y: y
-        };
-      };
-
-      Drawable.prototype.positionContext = function(ctx, fn) {
-        var pos;
-        if (this.parent) {
-          pos = this.convertToCanvas(this.parent.bounds());
-          ctx.translate(pos.x, pos.y);
-        }
-        return fn.call(this, ctx);
-      };
-
-      Drawable.prototype.containsCanvasPoint = function(point) {
-        var localPoint;
-        localPoint = this.convertFromCanvas(point);
-        return this.containsPoint(localPoint);
-      };
-
-      Drawable.prototype.containsPoint = function(point) {
-        var frame, _ref, _ref1;
-        frame = this.frame();
-        return (0 <= (_ref = point.x) && _ref <= frame.w) && (0 <= (_ref1 = point.y) && _ref1 <= frame.h);
-      };
-
-      Drawable.prototype.addChild = function(child) {
-        child.parent = this;
-        this.children.push(child);
-        return this.markDirty();
-      };
-
-      Drawable.prototype.removeChild = function(child) {
-        var i;
-        i = this.children.indexOf(child);
-        if (i >= 0) {
-          child.parent = null;
-          this.children.splice(i, 1);
-          return this.markDirty();
-        }
-      };
-
-      Drawable.prototype.renderChildren = function(ctx) {
-        var child, _i, _len, _ref, _results;
-        _ref = this.children;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          child = _ref[_i];
-          if (child.enabled) {
-            _results.push(child.render(ctx));
-          } else {
-            _results.push(void 0);
-          }
-        }
-        return _results;
-      };
-
-      Drawable.prototype.clear = function(ctx) {
-        var frame;
-        frame = this.frame();
-        if (this.parent) {
-          return positionContext(ctx, (function(_this) {
-            return function(ctx) {
-              return ctx.clearRect(frame.x, frame.y, frame.w, frame.h);
-            };
-          })(this));
-        } else {
-          return ctx.clearRect(frame.x, frame.y, frame.w, frame.h);
-        }
-      };
-
-      Drawable.prototype.render = function(ctx) {
-        ctx.save();
-        this.draw(ctx);
-        ctx.restore();
-        this.renderChildren(ctx);
-        return this.dirty = false;
-      };
-
-      Drawable.prototype.draw = function(ctx) {};
-
-      return Drawable;
-
-    })(Events);
-
-    drawing.Drawable = Drawable;
-
-    PaddedContainer = (function(_super) {
-      __extends(PaddedContainer, _super);
-
-      function PaddedContainer(options) {
-        if (options == null) {
-          options = {};
-        }
-        PaddedContainer.__super__.constructor.call(this, options);
-        this.padding = options.padding || 10;
-        this.fillParent = options.fillParent || true;
-      }
-
-      PaddedContainer.prototype.frame = function() {
-        var parentFrame;
-        if (this.fillParent) {
-          parentFrame = this.parent.frame();
-          return {
-            x: this.padding,
-            y: this.padding,
-            w: parentFrame.w - 2 * this.padding,
-            h: parentFrame.h - 2 * this.padding
-          };
-        } else {
-          return {
-            x: this.x + this.padding,
-            y: this.y + this.padding,
-            w: this.w - 2 * this.padding,
-            h: this.h - 2 * this.padding
-          };
-        }
-      };
-
-      PaddedContainer.prototype.bounds = function() {
-        var parentFrame;
-        if (this.fillParent) {
-          parentFrame = this.parent.frame();
-          return {
-            x: 0,
-            y: 0,
-            w: parentFrame.w - 2 * this.padding,
-            h: parentFrame.h - 2 * this.padding
-          };
-        } else {
-          return {
-            x: 0,
-            y: 0,
-            w: this.w - 2 * this.padding,
-            h: this.h - 2 * this.padding
-          };
-        }
-      };
-
-      return PaddedContainer;
-
-    })(Drawable);
-
-    drawing.PaddedContainer = PaddedContainer;
-
-    CanvasImage = (function(_super) {
-      __extends(CanvasImage, _super);
-
-      function CanvasImage(options) {
-        CanvasImage.__super__.constructor.call(this, options);
-        this.source = options.source;
-        this.naturalWidth = options.naturalWidth;
-        this.naturalHeight = options.naturalHeight;
-        this.originalNaturalBounds = this.naturalBounds();
-        this.cropped = false;
-        this.cropStack = [];
-        this.loaded = false;
-        this.cropX = 0;
-        this.cropY = 0;
-        this.cropWidth = this.naturalWidth;
-        this.cropHeight = this.naturalHeight;
-        this.loadImage();
-      }
-
-      CanvasImage.prototype.clearImage = function() {
-        this.loaded = false;
-        this.cropped = false;
-        this.w = null;
-        this.h = null;
-        this.naturalWidth = null;
-        this.naturalHeight = null;
-        this.cropStack = [];
-        this.originalNaturalBounds = this.naturalBounds();
-        return this.markDirty();
-      };
-
-      CanvasImage.prototype.setSource = function(source) {
-        this.clearImage();
-        this.source = source;
-        return this.loadImage();
-      };
-
-      CanvasImage.prototype.naturalBounds = function() {
-        return {
-          x: 0,
-          y: 0,
-          w: this.naturalWidth,
-          h: this.naturalHeight
-        };
-      };
-
-      CanvasImage.prototype.cropFrame = function() {
-        return {
-          x: this.cropX,
-          y: this.cropY,
-          w: this.cropWidth,
-          h: this.cropHeight
-        };
-      };
-
-      CanvasImage.prototype.crop = function(frame) {
-        if (!this.cropped) {
-          this.cropped = true;
-          this.cropX = this.cropY = 0;
-        }
-        this.cropX = frame.x + this.cropX;
-        this.cropY = frame.y + this.cropY;
-        this.cropWidth = frame.width;
-        this.cropHeight = frame.height;
-        this.naturalWidth = this.cropWidth;
-        this.naturalHeight = this.cropHeight;
-        this.resizeToParent();
-        this.centerOnParent();
-        this.cropStack.push(this.cropFrame());
-        this.trigger('crop', this, this.cropStack[this.cropStack.length - 2], this.cropFrame());
-        return this.markDirty();
-      };
-
-      CanvasImage.prototype.undoCrop = function() {
-        var newCropFrame, previousCropFrame;
-        if (this.cropStack.length > 1) {
-          previousCropFrame = this.cropStack.pop();
-          newCropFrame = this.cropStack[this.cropStack.length - 1];
-          this.cropX = newCropFrame.x;
-          this.cropY = newCropFrame.y;
-          this.cropWidth = newCropFrame.w;
-          this.cropHeight = newCropFrame.h;
-          this.naturalWidth = newCropFrame.w;
-          this.naturalHeight = newCropFrame.h;
-          this.resizeToParent();
-          this.centerOnParent();
-          if (this.cropStack.length === 1) {
-            this.cropped = false;
-          }
-          this.trigger('crop', this, previousCropFrame, this.cropFrame());
-          return this.markDirty();
-        }
-      };
-
-      CanvasImage.prototype.revertImage = function() {
-        var newCropFrame, originalCropFrame;
-        this.cropped = false;
-        if (this.cropStack.length > 1) {
-          originalCropFrame = this.cropStack[this.cropStack.length - 1];
-          newCropFrame = this.cropStack[0];
-          this.cropX = newCropFrame.x;
-          this.cropY = newCropFrame.y;
-          this.cropWidth = newCropFrame.w;
-          this.cropHeight = newCropFrame.h;
-          this.naturalWidth = newCropFrame.w;
-          this.naturalHeight = newCropFrame.h;
-          this.resizeToParent();
-          this.centerOnParent();
-          this.cropStack = [newCropFrame];
-          this.trigger('crop', this, originalCropFrame, newCropFrame);
-          return this.markDirty();
-        }
-      };
-
-      CanvasImage.prototype.resizeToParent = function() {
-        var ch, cw, scaleX, scaleY;
-        cw = this.parent.frame().w;
-        ch = this.parent.frame().h;
-        scaleX = 1;
-        scaleY = 1;
-        if (this.naturalWidth > cw) {
-          scaleX = cw / this.naturalWidth;
-        }
-        if (this.naturalHeight > ch) {
-          scaleY = ch / this.naturalHeight;
-        }
-        this.scale = Math.min(scaleX, scaleY);
-        this.w = (this.naturalWidth * this.scale) | 0;
-        this.h = (this.naturalHeight * this.scale) | 0;
-        return this.trigger('resize', this.frame());
-      };
-
-      CanvasImage.prototype.centerOnParent = function() {
-        this.x = ((this.parent.frame().w / 2) - (this.w / 2)) | 0;
-        this.y = ((this.parent.frame().h / 2) - (this.h / 2)) | 0;
-        return this.trigger('reposition', this.frame());
-      };
-
-      CanvasImage.prototype.toDataURL = function(format) {
-        var canvas, ctx;
-        if (format == null) {
-          format = 'image/png';
-        }
-        canvas = document.createElement('canvas');
-        canvas.width = this.cropWidth;
-        canvas.height = this.cropHeight;
-        ctx = canvas.getContext('2d');
-        if (this.cropped) {
-          ctx.drawImage(this.img, this.cropX, this.cropY, this.cropWidth, this.cropHeight, 0, 0, this.cropWidth, this.cropHeight);
-        } else {
-          ctx.drawImage(this.img, 0, 0, this.cropWidth, this.cropHeight);
-        }
-        return canvas.toDataURL(format);
-      };
-
-      CanvasImage.prototype.draw = function(ctx) {
-        return this.positionContext(ctx, function(ctx) {
-          if (this.cropped) {
-            return ctx.drawImage(this.img, this.cropX, this.cropY, this.cropWidth, this.cropHeight, 0, 0, this.w, this.h);
-          } else {
-            return ctx.drawImage(this.img, 0, 0, this.w, this.h);
-          }
-        });
-      };
-
-      CanvasImage.prototype.loadImage = function() {
-        this.img = document.createElement('img');
-        this.img.onload = (function(_this) {
-          return function() {
-            _this.loaded = true;
-            _this.naturalWidth = _this.img.naturalWidth;
-            _this.naturalHeight = _this.img.naturalHeight;
-            _this.cropped = false;
-            _this.cropStack = [];
-            _this.cropX = 0;
-            _this.cropY = 0;
-            _this.cropWidth = _this.img.naturalWidth;
-            _this.cropHeight = _this.img.naturalHeight;
-            _this.cropStack.push(_this.cropFrame());
-            _this.markDirty();
-            return _this.trigger('load', _this);
-          };
-        })(this);
-        return this.img.src = this.source;
-      };
-
-      return CanvasImage;
-
-    })(Drawable);
-
-    drawing.CanvasImage = CanvasImage;
-
-    Rectangle = (function(_super) {
-      __extends(Rectangle, _super);
-
-      function Rectangle(options) {
-        Rectangle.__super__.constructor.call(this, options);
-        this.fillStyle = options.fillStyle || 'rgba(0, 0, 0, 0)';
-        this.strokeStyle = options.strokeStyle;
-        this.lineWidth = options.lineWidth;
-      }
-
-      Rectangle.prototype.draw = function(ctx) {
-        return this.positionContext(ctx, (function(_this) {
-          return function(ctx) {
-            if (_this.fillStyle) {
-              ctx.fillStyle = _this.fillStyle;
-            }
-            if (_this.strokeStyle) {
-              ctx.strokeStyle = _this.strokeStyle;
-            }
-            if (_this.lineWidth) {
-              ctx.lineWidth = _this.lineWidth;
-            }
-            ctx.beginPath();
-            ctx.rect(0, 0, _this.w, _this.h);
-            ctx.closePath();
-            if (_this.fillStyle) {
-              ctx.fill();
-            }
-            if (_this.lineWidth && _this.strokeStyle) {
-              return ctx.stroke();
-            }
-          };
-        })(this));
-      };
-
-      return Rectangle;
-
-    })(Drawable);
-
-    drawing.Rectangle = Rectangle;
-
-    __exports__["default"] = drawing;
-  });define("events", 
-  ["funderscore","exports"],
-  function(__dependency1__, __exports__) {
-    "use strict";
-    var _ = __dependency1__["default"];
-    var Event, Events;
-
-    Events = (function() {
-      function Events() {}
-
-      Events.prototype.on = function(event, callback, context) {
-        var _base;
-        this.events || (this.events = {});
-        (_base = this.events)[event] || (_base[event] = []);
-        if (_.isFunction(callback)) {
-          return this.events[event].push([callback, context]);
-        }
-      };
-
-      Events.prototype.trigger = function(event) {
-        var callback, callbackStruct, callbacks, context, tail, _i, _len, _results;
-        tail = Array.prototype.slice.call(arguments, 1);
-        callbacks = this.events && this.events[event] ? this.events[event] : [];
-        _results = [];
-        for (_i = 0, _len = callbacks.length; _i < _len; _i++) {
-          callbackStruct = callbacks[_i];
-          callback = callbackStruct[0];
-          context = callbackStruct[1] || this;
-          _results.push(callback.apply(context, tail));
-        }
-        return _results;
-      };
-
-      return Events;
-
-    })();
-
-    Event = (function() {
-      function Event(options) {
-        var k, v;
-        for (k in options) {
-          v = options[k];
-          this[k] = v;
-        }
-      }
-
-      return Event;
-
-    })();
-
-    __exports__["default"] = Events;
-
-    __exports__.Event = Event;
   });define("rodeo-crop", 
-  ["funderscore","drawing","events","crop-box","stage","exports"],
-  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__, __exports__) {
+  ["funderscore","drawing","events","canvas-image","crop-box","stage","exports"],
+  function(__dependency1__, __dependency2__, __dependency3__, __dependency4__, __dependency5__, __dependency6__, __exports__) {
     "use strict";
     var _ = __dependency1__["default"];
     var drawing = __dependency2__["default"];
     var Events = __dependency3__["default"];
-    var CropBox = __dependency4__["default"];
-    var Stage = __dependency5__["default"];
+    var CanvasImage = __dependency4__["default"];
+    var CropBox = __dependency5__["default"];
+    var Stage = __dependency6__["default"];
     var Cropper, RodeoCrop,
       __hasProp = {}.hasOwnProperty,
       __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -1252,7 +1266,7 @@ define("crop-box",
         this.paddedContainer = new drawing.PaddedContainer({
           padding: (this.options.handleSize / 2) + 1
         });
-        this.image = new drawing.CanvasImage({
+        this.image = new CanvasImage({
           canvas: this.canvas,
           source: this.imageSource
         });
