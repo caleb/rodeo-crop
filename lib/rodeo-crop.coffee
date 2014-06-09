@@ -99,6 +99,9 @@ class Cropper extends Events
   isCropped: () ->
     @image.cropped
 
+  getImageSource: ->
+    @image.getSource()
+
   setImageSource: (source) ->
     @image.setSource source
 

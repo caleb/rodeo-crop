@@ -31,6 +31,9 @@ class CanvasImage extends drawing.Drawable
 
     @markDirty()
 
+  getSource: ->
+    @source
+
   setSource: (source) ->
     @clearImage()
     @source = source
