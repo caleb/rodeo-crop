@@ -18,8 +18,8 @@ class CropBox extends drawing.Drawable
 
     @cropX = options.cropX || 0
     @cropY = options.cropY || 0
-    @cropWidth = options.cropWidth || @handleSize * 4
-    @cropHeight = options.cropHeight || @handleSize * 4
+    @cropWidth = options.cropWidth
+    @cropHeight = options.cropHeight
 
     @marchingAnts = options.marchingAnts || true
 

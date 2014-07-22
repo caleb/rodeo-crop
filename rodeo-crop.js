@@ -727,8 +727,8 @@ define("canvas-image",
         });
         this.cropX = options.cropX || 0;
         this.cropY = options.cropY || 0;
-        this.cropWidth = options.cropWidth || this.handleSize * 4;
-        this.cropHeight = options.cropHeight || this.handleSize * 4;
+        this.cropWidth = options.cropWidth;
+        this.cropHeight = options.cropHeight;
         this.marchingAnts = options.marchingAnts || true;
         this.dashOffset = 0;
         this.dragging = null;
