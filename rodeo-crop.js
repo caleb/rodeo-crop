@@ -242,6 +242,10 @@ define("canvas-image",
         }
       };
 
+      CanvasImage.prototype.commitChanges = function() {
+        return this.history = [];
+      };
+
       CanvasImage.prototype.resizeToParent = function() {
         var ch, cw, scaleX, scaleY;
         cw = this.parent.frame().w;
@@ -1561,6 +1565,10 @@ define("canvas-image",
 
       Cropper.prototype.adjustContrast = function(amount) {
         return this.image.adjustContrast(amount);
+      };
+
+      Cropper.prototype.commitChanges = function() {
+        return this.image.commitChanges();
       };
 
       Cropper.prototype.toDataURL = function(format) {

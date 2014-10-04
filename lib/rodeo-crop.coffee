@@ -136,6 +136,9 @@ class Cropper extends Events
   adjustContrast: (amount) ->
     @image.adjustContrast amount
 
+  commitChanges: () ->
+    @image.commitChanges()
+
   toDataURL: (format = 'image/png') ->
     @image.toDataURL format
 

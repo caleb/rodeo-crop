@@ -185,6 +185,9 @@ class CanvasImage extends drawing.Drawable
 
       @markDirty()
 
+  commitChanges: () ->
+    @history = []
+
   resizeToParent: () ->
     cw = @parent.frame().w
     ch = @parent.frame().h
