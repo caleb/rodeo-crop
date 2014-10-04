@@ -1,3 +1,4 @@
+`import _ from "funderscore"`
 `import drawing from "drawing"`
 
 class CanvasImage extends drawing.Drawable
@@ -8,6 +9,8 @@ class CanvasImage extends drawing.Drawable
     @naturalWidth = options.naturalWidth
     @naturalHeight = options.naturalHeight
     @originalNaturalBounds = @naturalBounds()
+    @brightness = 0
+    @contrast = 0
     @cropped = false
     @history = []
     @loaded = false
@@ -17,17 +20,23 @@ class CanvasImage extends drawing.Drawable
     @cropWidth = @naturalWidth
     @cropHeight = @naturalHeight
 
+    @updateBrightnessAndContrastTable()
+
     @loadImage()
 
   clearImage: () ->
     @loaded = false
     @cropped = false
+    @brightness = 0
+    @contrast = 0
     @w = null
     @h = null
     @naturalWidth = null
     @naturalHeight = null
     @history = []
     @originalNaturalBounds = @naturalBounds()
+
+    @updateBrightnessAndContrastTable()
 
     @markDirty()
 
@@ -54,6 +63,36 @@ class CanvasImage extends drawing.Drawable
       w: @cropWidth
       h: @cropHeight
     }
+
+  adjustBrightness: (brightness) ->
+    previousBrightness = @brightness
+
+    @brightness = brightness
+    @updateBrightnessAndContrastTable()
+
+    @history.push
+      action: 'adjustBrightness'
+      fromBrightness: previousBrightness
+      toBrightness: brightness
+
+    @trigger 'adjustBrightness', @, previousBrightness, @brightness
+
+    @markDirty()
+
+  adjustContrast: (contrast) ->
+    previousContrast = @contrast
+
+    @contrast = contrast
+    @updateBrightnessAndContrastTable()
+
+    @history.push
+      action: 'adjustContrast'
+      fromContrast: previousContrast
+      toContrast: contrast
+
+    @trigger 'adjustContrast', @, previousContrast, @contrast
+
+    @markDirty()
 
   crop: (frame) ->
     unless @cropped
@@ -82,24 +121,35 @@ class CanvasImage extends drawing.Drawable
 
     @markDirty()
 
-  undoCrop: () ->
+  undo: () ->
     if @history.length > 0
-      cropHistory = @history.pop()
-      newCropFrame = cropHistory.fromCropFrame
+      action = @history.pop()
 
-      @cropX = newCropFrame.x
-      @cropY = newCropFrame.y
-      @cropWidth = newCropFrame.w
-      @cropHeight = newCropFrame.h
-      @naturalWidth = newCropFrame.w
-      @naturalHeight = newCropFrame.h
+      switch action.action
+        when 'crop'
+          newCropFrame = action.fromCropFrame
 
-      @resizeToParent()
-      @centerOnParent()
+          @cropX = newCropFrame.x
+          @cropY = newCropFrame.y
+          @cropWidth = newCropFrame.w
+          @cropHeight = newCropFrame.h
+          @naturalWidth = newCropFrame.w
+          @naturalHeight = newCropFrame.h
 
-      @cropped = false if @history.length == 0
+          @resizeToParent()
+          @centerOnParent()
 
-      @trigger 'crop', @, cropHistory.toCropFrame, @cropFrame()
+          @cropped = false if @cropX == 0 && @cropY == 0 && @cropWidth == @naturalWidth && @cropHeight == @naturalHeight
+
+          @trigger 'crop', @, action.toCropFrame, @cropFrame()
+        when 'adjustBrightness'
+          @brightness = action.fromBrightness
+          @updateBrightnessAndContrastTable()
+          @trigger 'adjustBrightness', @, action.toBrightness, @brightness
+        when 'adjustContrast'
+          @contrast = action.fromContrast
+          @updateBrightnessAndContrastTable()
+          @trigger 'adjustContrast', @, action.toContrast, @contrast
 
       @markDirty()
 
@@ -107,8 +157,12 @@ class CanvasImage extends drawing.Drawable
     @cropped = false
 
     if @history.length > 0
-      cropHistory = @history.pop()
+      previousCropFrame = @cropFrame()
+      previousBrightness = @brightness
+      previousContrast = @contrast
 
+      @brightness = 0
+      @contrast = 0
       @cropX = 0
       @cropY = 0
       @cropWidth = @originalNaturalBounds.w
@@ -118,8 +172,11 @@ class CanvasImage extends drawing.Drawable
 
       @resizeToParent()
       @centerOnParent()
+      @updateBrightnessAndContrastTable()
 
-      @trigger 'crop', @, cropHistory.toCropFrame, @cropFrame()
+      @trigger 'crop', @, previousCropFrame, @cropFrame()
+      @trigger 'adjustBrightness', @, previousBrightness, @brightness
+      @trigger 'adjustContrast', @, previousContrast, @contrast
 
       @history = []
 
@@ -158,14 +215,90 @@ class CanvasImage extends drawing.Drawable
     else
       ctx.drawImage @img, 0, 0, @cropWidth, @cropHeight
 
+    imageData = ctx.getImageData 0, 0, @cropWidth, @cropHeight
+
+    # Run our image through the filters
+    pixelData = imageData.data
+    for filter in @filters()
+      filter.call @, pixelData
+
+    ctx.putImageData imageData, 0, 0
+
     canvas.toDataURL format
 
   draw: (ctx) ->
+    return unless @loaded
+
     @positionContext ctx, (ctx) ->
       if @cropped
         ctx.drawImage @img, @cropX, @cropY, @cropWidth, @cropHeight, 0, 0, @w, @h
       else
         ctx.drawImage @img, 0, 0, @w, @h
+
+      canvasPoint = @convertToCanvas { x: 0, y: 0 }
+      imageData = ctx.getImageData canvasPoint.x, canvasPoint.y, @w, @h
+
+      # Run our image through the filters
+      pixelData = imageData.data
+      for filter in @filters()
+        filter.call @, pixelData
+
+      ctx.putImageData imageData, canvasPoint.x, canvasPoint.y
+
+  filters: ->
+    [
+      @filterBrightness
+    ]
+
+  filterBrightness: (pixelData) ->
+    i = 0
+    n = pixelData.length
+    while i < n
+      pixelData[i + 0] = @brightnessAndContrastTable[pixelData[i + 0]]
+      pixelData[i + 1] = @brightnessAndContrastTable[pixelData[i + 1]]
+      pixelData[i + 2] = @brightnessAndContrastTable[pixelData[i + 2]]
+
+      i += 4
+
+  updateBrightnessAndContrastTable: ->
+    @brightnessAndContrastTable = []
+
+    legacy = false
+
+    if legacy
+      brightness = Math.min(150, Math.max(-150, @brightness))
+    else
+      brightMul = 1 + Math.min(150, Math.max(-150, @brightness)) / 150
+
+    contrast = Math.max 0, @contrast + 1
+
+    if contrast != 1
+      if legacy
+        mul = contrast
+        add = (brightness - 128) * contrast + 128
+      else
+        mul = brightMul * contrast
+        add = - contrast * 128 + 128
+    else
+      if legacy
+        mul = 1
+        add = brightness
+      else
+        mul = brightMul
+        add = 0
+
+    i = 0
+    while i < 256
+      v = i * mul + add
+
+      @brightnessAndContrastTable[i] = if v > 255
+        255
+      else if v < 0
+        0
+      else
+        v
+
+      i++
 
   loadImage: ->
     @img = document.createElement 'img'

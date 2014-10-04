@@ -115,11 +115,17 @@ class Cropper extends Events
   revertImage: () ->
     @image.revertImage()
 
-  undoCropImage: () ->
-    @image.undoCrop()
+  undo: () ->
+    @image.undo()
 
   cropImage: () ->
     @image.crop @cropBox.cropFrame() if @cropBox.enabled
+
+  adjustBrightness: (amount) ->
+    @image.adjustBrightness amount
+
+  adjustContrast: (amount) ->
+    @image.adjustContrast amount
 
   toDataURL: (format = 'image/png') ->
     @image.toDataURL format
@@ -149,5 +155,6 @@ class Cropper extends Events
     window.requestAnimationFrame => @runLoop()
 
 RodeoCrop.Cropper = Cropper
+RodeoCrop._ = _
 
 `export default RodeoCrop`

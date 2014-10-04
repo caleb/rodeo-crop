@@ -38,13 +38,17 @@
 
   <div class="wrapper">
     <form action="#">
-      <input type="text" name="x">, <input type="text" name="y"> — <input type="text" name="w">&times;<input type="text" name="h">
+      <input type="text" name="x" size="6">, <input type="text" name="y" size="6"> — <input type="text" name="w" size="6">&times;<input type="text" name="h" size="6">
+
+      brightness: <input type="range" name="brightness" min="-150" max="150" step="1" value="0" style="width: 4em;">
+      contrast: <input type="range" name="contrast" min="-1" max="1" step="0.01" value="0" style="width: 4em;">
+
       <button id="update-crop">update!</button>
 
       <button id="change-image">change image</button>
 
       <button id="do-crop">do crop</button>
-      <button id="reset">reset</button>
+      <button id="undo">undo</button>
       <button id="dataurl">dataurl</button>
       <button id="revert">revert</button>
 
@@ -71,6 +75,9 @@
     var ybox = document.querySelector('[name=y]');
     var wbox = document.querySelector('[name=w]');
     var hbox = document.querySelector('[name=h]');
+
+    var brightness = document.querySelector('[name=brightness]');
+    var contrast = document.querySelector('[name=contrast]');
 
     cropper = new RodeoCrop.Cropper("#container", {
       width: parseInt(w, 10),
@@ -138,10 +145,10 @@
       window.location = cropper.toDataURL('image/jpeg')
     })
 
-    resetbutton = document.querySelector("#reset")
-    resetbutton.addEventListener('click', function(e) {
+    undobutton = document.querySelector("#undo")
+    undobutton.addEventListener('click', function(e) {
       e.preventDefault();
-      cropper.undoCropImage()
+      cropper.undo()
     })
 
     revertButton = document.querySelector("#revert")
@@ -171,6 +178,14 @@
     checkbox.addEventListener('change', function(e) {
       cropper.enableCrop(checkbox.checked);
     });
+
+    brightness.addEventListener('change', RodeoCrop._.debounce(function(e) {
+      cropper.adjustBrightness(parseFloat(brightness.value));
+    }, 500));
+
+    contrast.addEventListener('change', RodeoCrop._.debounce(function(e) {
+      cropper.adjustContrast(parseFloat(contrast.value));
+    }, 500));
   </script>
 </body>
 </html>
