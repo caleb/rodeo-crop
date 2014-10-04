@@ -1503,6 +1503,16 @@ define("canvas-image",
             return _this.cropBox.updateFrameFromCropFrame();
           };
         })(this));
+        this.image.on('adjustBrightness', (function(_this) {
+          return function(image, previousContrast, newContrast) {
+            return _this.trigger('adjustBrightness', previousContrast, newContrast);
+          };
+        })(this));
+        this.image.on('adjustContrast', (function(_this) {
+          return function(image, previousContrast, newContrast) {
+            return _this.trigger('adjustContrast', previousContrast, newContrast);
+          };
+        })(this));
         return this.image.addChild(this.cropBox);
       };
 

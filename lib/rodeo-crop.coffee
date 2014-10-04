@@ -94,6 +94,12 @@ class Cropper extends Events
     @image.on 'resize', () =>
       @cropBox.updateFrameFromCropFrame()
 
+    @image.on 'adjustBrightness', (image, previousContrast, newContrast) =>
+      @trigger 'adjustBrightness', previousContrast, newContrast
+
+    @image.on 'adjustContrast', (image, previousContrast, newContrast) =>
+      @trigger 'adjustContrast', previousContrast, newContrast
+
     @image.addChild @cropBox
 
   isCropped: () ->
