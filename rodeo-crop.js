@@ -52,10 +52,11 @@ var define, requireModule, require, requirejs;
   };
 })();
 define("canvas-image", 
-  ["drawing","exports"],
-  function(__dependency1__, __exports__) {
+  ["funderscore","drawing","exports"],
+  function(__dependency1__, __dependency2__, __exports__) {
     "use strict";
-    var drawing = __dependency1__["default"];
+    var _ = __dependency1__["default"];
+    var drawing = __dependency2__["default"];
     var CanvasImage,
       __hasProp = {}.hasOwnProperty,
       __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -69,6 +70,8 @@ define("canvas-image",
         this.naturalWidth = options.naturalWidth;
         this.naturalHeight = options.naturalHeight;
         this.originalNaturalBounds = this.naturalBounds();
+        this.brightness = 0;
+        this.contrast = 0;
         this.cropped = false;
         this.history = [];
         this.loaded = false;
@@ -76,18 +79,22 @@ define("canvas-image",
         this.cropY = 0;
         this.cropWidth = this.naturalWidth;
         this.cropHeight = this.naturalHeight;
+        this.updateBrightnessAndContrastTable();
         this.loadImage();
       }
 
       CanvasImage.prototype.clearImage = function() {
         this.loaded = false;
         this.cropped = false;
+        this.brightness = 0;
+        this.contrast = 0;
         this.w = null;
         this.h = null;
         this.naturalWidth = null;
         this.naturalHeight = null;
         this.history = [];
         this.originalNaturalBounds = this.naturalBounds();
+        this.updateBrightnessAndContrastTable();
         return this.markDirty();
       };
 
@@ -119,6 +126,34 @@ define("canvas-image",
         };
       };
 
+      CanvasImage.prototype.adjustBrightness = function(brightness) {
+        var previousBrightness;
+        previousBrightness = this.brightness;
+        this.brightness = brightness;
+        this.updateBrightnessAndContrastTable();
+        this.history.push({
+          action: 'adjustBrightness',
+          fromBrightness: previousBrightness,
+          toBrightness: brightness
+        });
+        this.trigger('adjustBrightness', this, previousBrightness, this.brightness);
+        return this.markDirty();
+      };
+
+      CanvasImage.prototype.adjustContrast = function(contrast) {
+        var previousContrast;
+        previousContrast = this.contrast;
+        this.contrast = contrast;
+        this.updateBrightnessAndContrastTable();
+        this.history.push({
+          action: 'adjustContrast',
+          fromContrast: previousContrast,
+          toContrast: contrast
+        });
+        this.trigger('adjustContrast', this, previousContrast, this.contrast);
+        return this.markDirty();
+      };
+
       CanvasImage.prototype.crop = function(frame) {
         var previousCrop;
         if (!this.cropped) {
@@ -143,32 +178,49 @@ define("canvas-image",
         return this.markDirty();
       };
 
-      CanvasImage.prototype.undoCrop = function() {
-        var cropHistory, newCropFrame;
+      CanvasImage.prototype.undo = function() {
+        var action, newCropFrame;
         if (this.history.length > 0) {
-          cropHistory = this.history.pop();
-          newCropFrame = cropHistory.fromCropFrame;
-          this.cropX = newCropFrame.x;
-          this.cropY = newCropFrame.y;
-          this.cropWidth = newCropFrame.w;
-          this.cropHeight = newCropFrame.h;
-          this.naturalWidth = newCropFrame.w;
-          this.naturalHeight = newCropFrame.h;
-          this.resizeToParent();
-          this.centerOnParent();
-          if (this.history.length === 0) {
-            this.cropped = false;
+          action = this.history.pop();
+          switch (action.action) {
+            case 'crop':
+              newCropFrame = action.fromCropFrame;
+              this.cropX = newCropFrame.x;
+              this.cropY = newCropFrame.y;
+              this.cropWidth = newCropFrame.w;
+              this.cropHeight = newCropFrame.h;
+              this.naturalWidth = newCropFrame.w;
+              this.naturalHeight = newCropFrame.h;
+              this.resizeToParent();
+              this.centerOnParent();
+              if (this.cropX === 0 && this.cropY === 0 && this.cropWidth === this.naturalWidth && this.cropHeight === this.naturalHeight) {
+                this.cropped = false;
+              }
+              this.trigger('crop', this, action.toCropFrame, this.cropFrame());
+              break;
+            case 'adjustBrightness':
+              this.brightness = action.fromBrightness;
+              this.updateBrightnessAndContrastTable();
+              this.trigger('adjustBrightness', this, action.toBrightness, this.brightness);
+              break;
+            case 'adjustContrast':
+              this.contrast = action.fromContrast;
+              this.updateBrightnessAndContrastTable();
+              this.trigger('adjustContrast', this, action.toContrast, this.contrast);
           }
-          this.trigger('crop', this, cropHistory.toCropFrame, this.cropFrame());
           return this.markDirty();
         }
       };
 
       CanvasImage.prototype.revertImage = function() {
-        var cropHistory;
+        var previousBrightness, previousContrast, previousCropFrame;
         this.cropped = false;
         if (this.history.length > 0) {
-          cropHistory = this.history.pop();
+          previousCropFrame = this.cropFrame();
+          previousBrightness = this.brightness;
+          previousContrast = this.contrast;
+          this.brightness = 0;
+          this.contrast = 0;
           this.cropX = 0;
           this.cropY = 0;
           this.cropWidth = this.originalNaturalBounds.w;
@@ -177,7 +229,10 @@ define("canvas-image",
           this.naturalHeight = this.originalNaturalBounds.h;
           this.resizeToParent();
           this.centerOnParent();
-          this.trigger('crop', this, cropHistory.toCropFrame, this.cropFrame());
+          this.updateBrightnessAndContrastTable();
+          this.trigger('crop', this, previousCropFrame, this.cropFrame());
+          this.trigger('adjustBrightness', this, previousBrightness, this.brightness);
+          this.trigger('adjustContrast', this, previousContrast, this.contrast);
           this.history = [];
           return this.markDirty();
         }
@@ -208,7 +263,7 @@ define("canvas-image",
       };
 
       CanvasImage.prototype.toDataURL = function(format) {
-        var canvas, ctx;
+        var canvas, ctx, filter, imageData, pixelData, _i, _len, _ref;
         if (format == null) {
           format = 'image/png';
         }
@@ -221,17 +276,96 @@ define("canvas-image",
         } else {
           ctx.drawImage(this.img, 0, 0, this.cropWidth, this.cropHeight);
         }
+        imageData = ctx.getImageData(0, 0, this.cropWidth, this.cropHeight);
+        pixelData = imageData.data;
+        _ref = this.filters();
+        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+          filter = _ref[_i];
+          filter.call(this, pixelData);
+        }
+        ctx.putImageData(imageData, 0, 0);
         return canvas.toDataURL(format);
       };
 
       CanvasImage.prototype.draw = function(ctx) {
+        if (!this.loaded) {
+          return;
+        }
         return this.positionContext(ctx, function(ctx) {
+          var canvasPoint, filter, imageData, pixelData, _i, _len, _ref;
           if (this.cropped) {
-            return ctx.drawImage(this.img, this.cropX, this.cropY, this.cropWidth, this.cropHeight, 0, 0, this.w, this.h);
+            ctx.drawImage(this.img, this.cropX, this.cropY, this.cropWidth, this.cropHeight, 0, 0, this.w, this.h);
           } else {
-            return ctx.drawImage(this.img, 0, 0, this.w, this.h);
+            ctx.drawImage(this.img, 0, 0, this.w, this.h);
           }
+          canvasPoint = this.convertToCanvas({
+            x: 0,
+            y: 0
+          });
+          imageData = ctx.getImageData(canvasPoint.x, canvasPoint.y, this.w, this.h);
+          pixelData = imageData.data;
+          _ref = this.filters();
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            filter = _ref[_i];
+            filter.call(this, pixelData);
+          }
+          return ctx.putImageData(imageData, canvasPoint.x, canvasPoint.y);
         });
+      };
+
+      CanvasImage.prototype.filters = function() {
+        return [this.filterBrightness];
+      };
+
+      CanvasImage.prototype.filterBrightness = function(pixelData) {
+        var i, n, _results;
+        i = 0;
+        n = pixelData.length;
+        _results = [];
+        while (i < n) {
+          pixelData[i + 0] = this.brightnessAndContrastTable[pixelData[i + 0]];
+          pixelData[i + 1] = this.brightnessAndContrastTable[pixelData[i + 1]];
+          pixelData[i + 2] = this.brightnessAndContrastTable[pixelData[i + 2]];
+          _results.push(i += 4);
+        }
+        return _results;
+      };
+
+      CanvasImage.prototype.updateBrightnessAndContrastTable = function() {
+        var add, brightMul, brightness, contrast, i, legacy, mul, v, _results;
+        this.brightnessAndContrastTable = [];
+        legacy = false;
+        if (legacy) {
+          brightness = Math.min(150, Math.max(-150, this.brightness));
+        } else {
+          brightMul = 1 + Math.min(150, Math.max(-150, this.brightness)) / 150;
+        }
+        contrast = Math.max(0, this.contrast + 1);
+        if (contrast !== 1) {
+          if (legacy) {
+            mul = contrast;
+            add = (brightness - 128) * contrast + 128;
+          } else {
+            mul = brightMul * contrast;
+            add = -contrast * 128 + 128;
+          }
+        } else {
+          if (legacy) {
+            mul = 1;
+            add = brightness;
+          } else {
+            mul = brightMul;
+            add = 0;
+          }
+        }
+        i = 0;
+        _results = [];
+        while (i < 256) {
+          v = i * mul + add;
+          this.brightnessAndContrastTable[i] = v > 255 ? 255 : v < 0 ? 0 : v;
+          _results.push(i++);
+        }
+        return _results;
       };
 
       CanvasImage.prototype.loadImage = function() {
@@ -260,6 +394,83 @@ define("canvas-image",
     })(drawing.Drawable);
 
     __exports__["default"] = CanvasImage;
+  });define("funderscore", 
+  ["exports"],
+  function(__exports__) {
+    "use strict";
+    var type, _, _fn, _i, _len, _ref;
+
+    _ = {};
+
+    _.clone = function(obj) {
+      return _.extend({}, obj);
+    };
+
+    _.extend = function(obj, source) {
+      var prop;
+      if (source) {
+        for (prop in source) {
+          obj[prop] = source[prop];
+        }
+      }
+      return obj;
+    };
+
+    _ref = ['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp'];
+    _fn = function(type) {
+      return _["is" + type] = function(obj) {
+        return Object.prototype.toString.call(obj) === ("[object " + type + "]");
+      };
+    };
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      type = _ref[_i];
+      _fn(type);
+    }
+
+    _.now = Date.now || function() {
+      return new Date().getTime();
+    };
+
+    _.debounce = function(func, wait, immediate) {
+      var args, context, later, result, timeout, timestamp;
+      args = null;
+      context = null;
+      timestamp = null;
+      timeout = null;
+      result = null;
+      later = function() {
+        var last;
+        last = _.now() - timestamp;
+        if (last < wait && last > 0) {
+          return timeout = setTimeout(later, wait - last);
+        } else {
+          timeout = null;
+          if (!immediate) {
+            result = func.apply(context, args);
+            if (!timeout) {
+              return context = args = null;
+            }
+          }
+        }
+      };
+      return function() {
+        var callNow;
+        context = this;
+        args = arguments;
+        timestamp = _.now();
+        callNow = immediate && !timeout;
+        if (!timeout) {
+          timeout = setTimeout(later, wait);
+        }
+        if (callNow) {
+          result = func.apply(context, args);
+          context = args = null;
+        }
+        return result;
+      };
+    };
+
+    __exports__["default"] = _;
   });define("drawing", 
   ["funderscore","events","exports"],
   function(__dependency1__, __dependency2__, __exports__) {
@@ -606,40 +817,6 @@ define("canvas-image",
     drawing.Rectangle = Rectangle;
 
     __exports__["default"] = drawing;
-  });define("funderscore", 
-  ["exports"],
-  function(__exports__) {
-    "use strict";
-    var type, _, _fn, _i, _len, _ref;
-
-    _ = {};
-
-    _.clone = function(obj) {
-      return _.extend({}, obj);
-    };
-
-    _.extend = function(obj, source) {
-      var prop;
-      if (source) {
-        for (prop in source) {
-          obj[prop] = source[prop];
-        }
-      }
-      return obj;
-    };
-
-    _ref = ['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp'];
-    _fn = function(type) {
-      return _["is" + type] = function(obj) {
-        return Object.prototype.toString.call(obj) === ("[object " + type + "]");
-      };
-    };
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      type = _ref[_i];
-      _fn(type);
-    }
-
-    __exports__["default"] = _;
   });define("events", 
   ["funderscore","exports"],
   function(__dependency1__, __exports__) {
@@ -1350,14 +1527,22 @@ define("canvas-image",
         return this.image.revertImage();
       };
 
-      Cropper.prototype.undoCropImage = function() {
-        return this.image.undoCrop();
+      Cropper.prototype.undo = function() {
+        return this.image.undo();
       };
 
       Cropper.prototype.cropImage = function() {
         if (this.cropBox.enabled) {
           return this.image.crop(this.cropBox.cropFrame());
         }
+      };
+
+      Cropper.prototype.adjustBrightness = function(amount) {
+        return this.image.adjustBrightness(amount);
+      };
+
+      Cropper.prototype.adjustContrast = function(amount) {
+        return this.image.adjustContrast(amount);
       };
 
       Cropper.prototype.toDataURL = function(format) {
@@ -1404,6 +1589,8 @@ define("canvas-image",
     })(Events);
 
     RodeoCrop.Cropper = Cropper;
+
+    RodeoCrop._ = _;
 
     __exports__["default"] = RodeoCrop;
   });define("stage", 
