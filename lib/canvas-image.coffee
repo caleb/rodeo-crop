@@ -121,6 +121,9 @@ class CanvasImage extends drawing.Drawable
 
     @markDirty()
 
+  isChanged: () ->
+    @history.length > 0
+
   undo: () ->
     if @history.length > 0
       action = @history.pop()

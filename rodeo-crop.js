@@ -178,6 +178,10 @@ define("canvas-image",
         return this.markDirty();
       };
 
+      CanvasImage.prototype.isChanged = function() {
+        return this.history.length > 0;
+      };
+
       CanvasImage.prototype.undo = function() {
         var action, newCropFrame;
         if (this.history.length > 0) {
@@ -1504,6 +1508,10 @@ define("canvas-image",
 
       Cropper.prototype.isCropped = function() {
         return this.image.cropped;
+      };
+
+      Cropper.prototype.isChanged = function() {
+        return this.image.isChanged();
       };
 
       Cropper.prototype.getImageSource = function() {
