@@ -177,9 +177,14 @@ class CanvasImage extends drawing.Drawable
       @centerOnParent()
       @updateBrightnessAndContrastTable()
 
-      @trigger 'crop', @, previousCropFrame, @cropFrame()
-      @trigger 'adjustBrightness', @, previousBrightness, @brightness
-      @trigger 'adjustContrast', @, previousContrast, @contrast
+      if previousCropFrame.x != @cropFrame().x ||
+         previousCropFrame.y != @cropFrame().y ||
+         previousCropFrame.w != @cropFrame().w ||
+         previousCropFrame.h != @cropFrame().h
+        @trigger 'crop', @, previousCropFrame, @cropFrame()
+
+      @trigger 'adjustBrightness', @, previousBrightness, @brightness if @brightness != previousBrightness
+      @trigger 'adjustContrast', @, previousContrast, @contrast if @contrast != previousContrast
 
       @history = []
 
