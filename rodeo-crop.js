@@ -234,9 +234,15 @@ define("canvas-image",
           this.resizeToParent();
           this.centerOnParent();
           this.updateBrightnessAndContrastTable();
-          this.trigger('crop', this, previousCropFrame, this.cropFrame());
-          this.trigger('adjustBrightness', this, previousBrightness, this.brightness);
-          this.trigger('adjustContrast', this, previousContrast, this.contrast);
+          if (previousCropFrame.x !== this.cropFrame().x || previousCropFrame.y !== this.cropFrame().y || previousCropFrame.w !== this.cropFrame().w || previousCropFrame.h !== this.cropFrame().h) {
+            this.trigger('crop', this, previousCropFrame, this.cropFrame());
+          }
+          if (this.brightness !== previousBrightness) {
+            this.trigger('adjustBrightness', this, previousBrightness, this.brightness);
+          }
+          if (this.contrast !== previousContrast) {
+            this.trigger('adjustContrast', this, previousContrast, this.contrast);
+          }
           this.history = [];
           return this.markDirty();
         }
