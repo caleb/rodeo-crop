@@ -2,4 +2,7 @@
 
 rm -rf dist
 broccoli build dist
-mv dist/**/*.js .
+
+if [ -d dist ]; then
+  mv dist/**/*.js .
+fi

@@ -8,7 +8,7 @@ var define, requireModule, require, requirejs;
   };
 
   requirejs = require = requireModule = function(name) {
-  requirejs._eak_seen = registry;
+    requirejs._eak_seen = registry;
 
     if (seen.hasOwnProperty(name)) { return seen[name]; }
     seen[name] = {};
@@ -1794,7 +1794,7 @@ define("canvas-image",
       };
 
       requirejs = require = requireModule = function(name) {
-      requirejs._eak_seen = registry;
+        requirejs._eak_seen = registry;
 
         if (seen.hasOwnProperty(name)) { return seen[name]; }
         seen[name] = {};
@@ -1837,4 +1837,10 @@ define("canvas-image",
         }
       };
     })();
-  });window.RodeoCrop = requireModule('rodeo-crop').default;
+  });window.RodeoDraw || (window.RodeoDraw = {});
+window.RodeoDraw.CanvasImage = require('canvas-image').default;
+window.RodeoDraw.Drawing     = require('drawing').default;
+window.RodeoDraw.Events      = require('events').default;
+window.RodeoDraw.Stage       = require('stage').default;
+
+window.RodeoCrop = require('rodeo-crop').default;
