@@ -194,7 +194,7 @@ class CanvasImage extends drawing.Drawable
     @history = []
 
   # scaleUp: decides whether to scale the image up if the parent is larger than the natural size of the image
-  resizeToParent: (scaleUp = false) ->
+  resizeToParent: () ->
     cw = @parent.frame().w
     ch = @parent.frame().h
 
