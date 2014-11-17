@@ -252,16 +252,19 @@ define("canvas-image",
         return this.history = [];
       };
 
-      CanvasImage.prototype.resizeToParent = function() {
+      CanvasImage.prototype.resizeToParent = function(scaleUp) {
         var ch, cw, scaleX, scaleY;
+        if (scaleUp == null) {
+          scaleUp = false;
+        }
         cw = this.parent.frame().w;
         ch = this.parent.frame().h;
         scaleX = 1;
         scaleY = 1;
-        if (this.naturalWidth > cw) {
+        if (this.naturalWidth > cw || scaleUp) {
           scaleX = cw / this.naturalWidth;
         }
-        if (this.naturalHeight > ch) {
+        if (this.naturalHeight > ch || scaleUp) {
           scaleY = ch / this.naturalHeight;
         }
         this.scale = Math.min(scaleX, scaleY);
