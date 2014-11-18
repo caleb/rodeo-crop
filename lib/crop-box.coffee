@@ -397,7 +397,6 @@ class CropBox extends drawing.Drawable
     opacity = "0.5"
     lineDash = 4
 
-    ctx.save()
     @positionContext ctx, (ctx) =>
       ctx.lineDashOffset = @dashOffset
 
@@ -445,8 +444,6 @@ class CropBox extends drawing.Drawable
         ctx.setLineDash [lineDash]
         ctx.lineTo frame.w, y
         ctx.stroke()
-
-    ctx.restore()
 
   draw: (ctx) ->
     @drawScreen ctx

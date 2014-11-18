@@ -1369,8 +1369,7 @@ define("canvas-image",
         frame.h = Math.round(frame.h);
         opacity = "0.5";
         lineDash = 4;
-        ctx.save();
-        this.positionContext(ctx, (function(_this) {
+        return this.positionContext(ctx, (function(_this) {
           return function(ctx) {
             var x, y, _i, _j, _len, _len1, _ref, _ref1, _results;
             ctx.lineDashOffset = _this.dashOffset;
@@ -1422,7 +1421,6 @@ define("canvas-image",
             return _results;
           };
         })(this));
-        return ctx.restore();
       };
 
       CropBox.prototype.draw = function(ctx) {
