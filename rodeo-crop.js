@@ -430,7 +430,7 @@ define("canvas-image",
       return obj;
     };
 
-    _ref = ['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp'];
+    _ref = ['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp', 'Boolean'];
     _fn = function(type) {
       return _["is" + type] = function(obj) {
         return Object.prototype.toString.call(obj) === ("[object " + type + "]");
@@ -740,7 +740,7 @@ define("canvas-image",
         }
         PaddedContainer.__super__.constructor.call(this, options);
         this.padding = options.padding || 10;
-        this.fillParent = options.fillParent || true;
+        this.fillParent = _.isBoolean(options.fillParent) ? options.fillParent : true;
       }
 
       PaddedContainer.prototype.frame = function() {

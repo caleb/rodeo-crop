@@ -176,7 +176,7 @@ class PaddedContainer extends Drawable
     super options
 
     @padding = options.padding || 10
-    @fillParent = options.fillParent || true
+    @fillParent = if _.isBoolean(options.fillParent) then options.fillParent else true
 
   frame: () ->
     if @fillParent

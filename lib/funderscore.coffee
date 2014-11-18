@@ -10,7 +10,7 @@ _.extend = (obj, source) ->
       obj[prop] = source[prop]
   obj
 
-for type in ['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp']
+for type in ['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp', 'Boolean']
   do (type) ->
     _["is#{type}"] = (obj) -> Object.prototype.toString.call(obj) == "[object #{type}]"
 
