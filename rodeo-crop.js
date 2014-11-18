@@ -651,11 +651,13 @@ define("canvas-image",
 
       Drawable.prototype.positionContext = function(ctx, fn) {
         var pos;
+        ctx.save();
         if (this.parent) {
           pos = this.convertToCanvas(this.parent.bounds());
           ctx.translate(pos.x, pos.y);
         }
-        return fn.call(this, ctx);
+        fn.call(this, ctx);
+        return ctx.restore();
       };
 
       Drawable.prototype.containsCanvasPoint = function(point) {

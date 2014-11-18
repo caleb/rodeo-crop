@@ -121,10 +121,12 @@ class Drawable extends Events
     }
 
   positionContext: (ctx, fn) ->
+    ctx.save()
     if @parent
       pos = @convertToCanvas @parent.bounds()
       ctx.translate pos.x, pos.y
     fn.call @, ctx
+    ctx.restore()
 
   containsCanvasPoint: (point) ->
     localPoint = @convertFromCanvas point
