@@ -252,11 +252,8 @@ define("canvas-image",
         return this.history = [];
       };
 
-      CanvasImage.prototype.resizeToParent = function(scaleUp) {
+      CanvasImage.prototype.resizeToParent = function() {
         var ch, cw, scaleX, scaleY;
-        if (scaleUp == null) {
-          scaleUp = false;
-        }
         cw = this.parent.frame().w;
         ch = this.parent.frame().h;
         scaleX = 1;
@@ -762,6 +759,26 @@ define("canvas-image",
             y: this.y + this.padding,
             w: this.w - 2 * this.padding,
             h: this.h - 2 * this.padding
+          };
+        }
+      };
+
+      PaddedContainer.prototype.outerFrame = function() {
+        var parentFrame;
+        if (this.fillParent) {
+          parentFrame = this.parent.frame();
+          return {
+            x: this.padding,
+            y: this.padding,
+            w: parentFrame.w,
+            h: parentFrame.h
+          };
+        } else {
+          return {
+            x: this.x,
+            y: this.y,
+            w: this.w,
+            h: this.h
           };
         }
       };

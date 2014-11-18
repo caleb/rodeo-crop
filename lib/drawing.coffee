@@ -195,6 +195,24 @@ class PaddedContainer extends Drawable
         h: @h - 2 * @padding
       }
 
+  # Returns the whole frame for this container, including the padding
+  outerFrame: () ->
+    if @fillParent
+      parentFrame = @parent.frame()
+      {
+        x: @padding
+        y: @padding
+        w: parentFrame.w
+        h: parentFrame.h
+      }
+    else
+      {
+        x: @x
+        y: @y
+        w: @w
+        h: @h
+      }
+
   bounds: () ->
     if @fillParent
       parentFrame = @parent.frame()
