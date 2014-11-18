@@ -230,6 +230,12 @@ class PaddedContainer extends Drawable
         h: @h - 2 * @padding
       }
 
+  setFrame: (newFrame) ->
+    @w = newFrame.w + 2 * @padding if newFrame.w
+    @h = newFrame.h + 2 * @padding if newFrame.h
+    @x = newFrame.x - @padding if newFrame.x
+    @y = newFrame.y - @padding if newFrame.y
+
 drawing.PaddedContainer = PaddedContainer
 
 class Rectangle extends Drawable

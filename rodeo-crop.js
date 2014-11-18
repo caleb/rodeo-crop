@@ -803,6 +803,21 @@ define("canvas-image",
         }
       };
 
+      PaddedContainer.prototype.setFrame = function(newFrame) {
+        if (newFrame.w) {
+          this.w = newFrame.w + 2 * this.padding;
+        }
+        if (newFrame.h) {
+          this.h = newFrame.h + 2 * this.padding;
+        }
+        if (newFrame.x) {
+          this.x = newFrame.x - this.padding;
+        }
+        if (newFrame.y) {
+          return this.y = newFrame.y - this.padding;
+        }
+      };
+
       return PaddedContainer;
 
     })(Drawable);
