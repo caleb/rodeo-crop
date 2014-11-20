@@ -193,7 +193,6 @@ class CanvasImage extends drawing.Drawable
   commitChanges: () ->
     @history = []
 
-  # scaleUp: decides whether to scale the image up if the parent is larger than the natural size of the image
   resizeToParent: () ->
     cw = @parent.frame().w
     ch = @parent.frame().h
@@ -201,8 +200,8 @@ class CanvasImage extends drawing.Drawable
     scaleX = 1
     scaleY = 1
 
-    scaleX = cw / @naturalWidth if @naturalWidth > cw || scaleUp
-    scaleY = ch / @naturalHeight if @naturalHeight > ch || scaleUp
+    scaleX = cw / @naturalWidth if @naturalWidth > cw
+    scaleY = ch / @naturalHeight if @naturalHeight > ch
 
     @scale = Math.min scaleX, scaleY
     @w = (@naturalWidth * @scale)|0

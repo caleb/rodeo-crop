@@ -258,10 +258,10 @@ define("canvas-image",
         ch = this.parent.frame().h;
         scaleX = 1;
         scaleY = 1;
-        if (this.naturalWidth > cw || scaleUp) {
+        if (this.naturalWidth > cw) {
           scaleX = cw / this.naturalWidth;
         }
-        if (this.naturalHeight > ch || scaleUp) {
+        if (this.naturalHeight > ch) {
           scaleY = ch / this.naturalHeight;
         }
         this.scale = Math.min(scaleX, scaleY);
