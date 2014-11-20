@@ -718,11 +718,13 @@ define("canvas-image",
       };
 
       Drawable.prototype.render = function(ctx) {
-        ctx.save();
-        this.draw(ctx);
-        ctx.restore();
-        this.renderChildren(ctx);
-        return this.dirty = false;
+        if (this.enabled) {
+          ctx.save();
+          this.draw(ctx);
+          ctx.restore();
+          this.renderChildren(ctx);
+          return this.dirty = false;
+        }
       };
 
       Drawable.prototype.draw = function(ctx) {};

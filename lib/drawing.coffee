@@ -162,11 +162,12 @@ class Drawable extends Events
       ctx.clearRect frame.x, frame.y, frame.w, frame.h
 
   render: (ctx) ->
-    ctx.save()
-    @draw ctx
-    ctx.restore()
-    @renderChildren ctx
-    @dirty = false
+    if @enabled
+      ctx.save()
+      @draw ctx
+      ctx.restore()
+      @renderChildren ctx
+      @dirty = false
 
   draw: (ctx) ->
     # noop
