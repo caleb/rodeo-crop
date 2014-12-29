@@ -142,6 +142,9 @@ class Cropper extends Events
   toDataURL: (format = 'image/png') ->
     @image.toDataURL format
 
+  toBlob: (callback, format = 'image/png') ->
+    @image.toBlob callback, format
+
   updateCanvasSize: () ->
     w = window.getComputedStyle(@canvas.parentNode).getPropertyValue 'width'
     h = window.getComputedStyle(@canvas.parentNode).getPropertyValue 'height'

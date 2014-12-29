@@ -215,7 +215,7 @@ class CanvasImage extends drawing.Drawable
 
     @trigger 'reposition', @frame()
 
-  toDataURL: (format = 'image/png') ->
+  renderToCanvas: () ->
     canvas = document.createElement 'canvas'
     canvas.width = @cropWidth
     canvas.height = @cropHeight
@@ -235,7 +235,15 @@ class CanvasImage extends drawing.Drawable
 
     ctx.putImageData imageData, 0, 0
 
+    canvas
+
+  toDataURL: (format = 'image/png') ->
+    canvas = @renderToCanvas()
     canvas.toDataURL format
+
+  toBlob: (callback, format = 'image/png') ->
+    canvas = @renderToCanvas()
+    canvas.toBlob callback, format
 
   draw: (ctx) ->
     return unless @loaded
