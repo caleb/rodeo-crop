@@ -15,6 +15,7 @@ class Cropper extends Events
       el
 
     @options = _.extend
+      crossOrigin: null
       cropEnabled: true
       cropX: null
       cropY: null
@@ -56,6 +57,7 @@ class Cropper extends Events
       padding: (@options.handleSize / 2) + 1
 
     @image = new CanvasImage
+      crossOrigin: @options.crossOrigin
       canvas: @canvas
       source: @imageSource
 

@@ -8,6 +8,7 @@ class CanvasImage extends drawing.Drawable
     @source = options.source
     @naturalWidth = options.naturalWidth
     @naturalHeight = options.naturalHeight
+    @crossOrigin = options.crossOrigin
     @originalNaturalBounds = @naturalBounds()
     @brightness = 0
     @contrast = 0
@@ -321,6 +322,7 @@ class CanvasImage extends drawing.Drawable
 
   loadImage: ->
     @img = document.createElement 'img'
+    @img.crossOrigin = @crossOrigin if @crossOrigin
     @img.onload = =>
       @loaded = true
       @naturalWidth = @img.naturalWidth

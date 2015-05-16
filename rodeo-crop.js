@@ -69,6 +69,7 @@ define("canvas-image",
         this.source = options.source;
         this.naturalWidth = options.naturalWidth;
         this.naturalHeight = options.naturalHeight;
+        this.crossOrigin = options.crossOrigin;
         this.originalNaturalBounds = this.naturalBounds();
         this.brightness = 0;
         this.contrast = 0;
@@ -276,11 +277,8 @@ define("canvas-image",
         return this.trigger('reposition', this.frame());
       };
 
-      CanvasImage.prototype.toDataURL = function(format) {
+      CanvasImage.prototype.renderToCanvas = function() {
         var canvas, ctx, filter, imageData, pixelData, _i, _len, _ref;
-        if (format == null) {
-          format = 'image/png';
-        }
         canvas = document.createElement('canvas');
         canvas.width = this.cropWidth;
         canvas.height = this.cropHeight;
@@ -298,7 +296,25 @@ define("canvas-image",
           filter.call(this, pixelData);
         }
         ctx.putImageData(imageData, 0, 0);
+        return canvas;
+      };
+
+      CanvasImage.prototype.toDataURL = function(format) {
+        var canvas;
+        if (format == null) {
+          format = 'image/png';
+        }
+        canvas = this.renderToCanvas();
         return canvas.toDataURL(format);
+      };
+
+      CanvasImage.prototype.toBlob = function(callback, format) {
+        var canvas;
+        if (format == null) {
+          format = 'image/png';
+        }
+        canvas = this.renderToCanvas();
+        return canvas.toBlob(callback, format);
       };
 
       CanvasImage.prototype.draw = function(ctx) {
@@ -384,6 +400,9 @@ define("canvas-image",
 
       CanvasImage.prototype.loadImage = function() {
         this.img = document.createElement('img');
+        if (this.crossOrigin) {
+          this.img.crossOrigin = this.crossOrigin;
+        }
         this.img.onload = (function(_this) {
           return function() {
             _this.loaded = true;
@@ -1458,6 +1477,7 @@ define("canvas-image",
       function Cropper(el, options) {
         this.el = _.isString(el) ? document.querySelector(el) : el;
         this.options = _.extend({
+          crossOrigin: null,
           cropEnabled: true,
           cropX: null,
           cropY: null,
@@ -1499,6 +1519,7 @@ define("canvas-image",
           padding: (this.options.handleSize / 2) + 1
         });
         this.image = new CanvasImage({
+          crossOrigin: this.options.crossOrigin,
           canvas: this.canvas,
           source: this.imageSource
         });
@@ -1619,6 +1640,13 @@ define("canvas-image",
           format = 'image/png';
         }
         return this.image.toDataURL(format);
+      };
+
+      Cropper.prototype.toBlob = function(callback, format) {
+        if (format == null) {
+          format = 'image/png';
+        }
+        return this.image.toBlob(callback, format);
       };
 
       Cropper.prototype.updateCanvasSize = function() {
